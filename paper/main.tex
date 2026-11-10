@@ -6,8 +6,8 @@
 \usepackage{hyperref}
 \usepackage{amsmath}
 
-\title{RASP-Predicted Difficulty for Uneven Decimal Chain Sums\\
-\large Relative Trends and Failure Modes under Transformer Constraints}
+\title{Two-Factor RASP Budgets for Uneven Decimal Chain Sums\\
+\large Alignment $\times$ Carry Clusters, Depth/Head Lower Bounds, and Dual Eval Axes}
 \author{Anonymous Authors}
 \date{}
 
@@ -15,170 +15,118 @@
 \maketitle
 
 \begin{abstract}
-We implement a RASP program for decimal chain summation
-(align $\rightarrow$ digitwise add $\rightarrow$ carry scan) and obtain
-\emph{theoretically predicted} per-example difficulty from this
-Transformer-native abstraction. We then test whether models of different
-scales, evaluated on the \emph{same} dataset, exhibit difficulty rankings and
-failure-mode distributions that match those RASP constraints.
-The point is not absolute accuracy, but whether real models track the predicted
-\textbf{relative} difficulty gradient and the correlated error-type mass.
-Agreement would suggest that failures are not explained solely by missing
-in-distribution training exemplars; they also reflect inherent computational
-limits of the Transformer architecture that RASP idealizes.
-Disagreement helps separate \emph{architecture-imposed} effects from
-\emph{training-distribution} effects. This document is a paper skeleton;
-tables will be filled from \texttt{experiments/results/}.
+We factor decimal chain-sum difficulty into two \emph{independent} axes:
+\textbf{decimal-point alignment} (fractional unevenness) and \textbf{carry-chain degree}.
+Their Cartesian product yields sample clusters $\{A_i\times C_j\}$.
+For each cluster we write a specialized RASP program and derive
+\emph{minimum depth} and \emph{minimum head} budgets---Transformer-native resource
+lower bounds for a faithful align$\to$digitwise-add$\to$carry algorithm.
+We then evaluate open models along two complementary trends:
+(1)~\textbf{fixed model, vary clusters}; (2)~\textbf{fixed clusters, vary scale}.
+We only claim relative difficulty trends and error-type correlations with these budgets,
+helping separate architectural constraints from training-distribution effects.
 \end{abstract}
 
 \section{Introduction}
 
-Large language models still fail elementary place-value arithmetic when
-fractional lengths are uneven or carries are dense. A common explanation is
-data: pretraining rarely contains enough similar chain sums. That account is
-incomplete. Even with ideal data, a Transformer must implement algorithms whose
-depth and information flow are constrained; RASP~\cite{weiss2021rasp} is an
-idealized abstraction of those constraints.
+Failures on place-value arithmetic are often blamed on missing similar pretraining
+examples. RASP~\cite{weiss2021rasp} offers a second account: even ideal data must be
+executed under Transformer-native limits on depth (sequential carry) and attention
+patterns (alignment selects).
 
-\paragraph{Research question.}
-If we write the target summation procedure in RASP and read off a theoretical
-difficulty gradient, do empirical models---across scales---reproduce
-(i)~the same \emph{relative} difficulty ordering and
-(ii)~correlated shifts in \emph{error-type} distribution?
-Matching the gradient implicates architecture-level bottlenecks (e.g., long
-carry scans). Systematic mismatches, especially when prompts or scale change
-but RASP rank does not, point more toward training-distribution or elicitation
-effects.
+\paragraph{Design.}
+Split difficulty into orthogonal factors $A$ (alignment) and $C$ (carry degree).
+Build independent clusters $A_iC_j$. For each cluster, instantiate a RASP sketch and
+read off $\mathrm{depth}_{\min}$ and $\mathrm{heads}_{\min}$.
+Test whether real models track those predictions on two axes---within a model across
+clusters, and across scales on fixed clusters.
 
-\paragraph{What we claim / do not claim.}
-We \textbf{only} test relative difficulty trends and the correlation of failure
-modes with RASP proxies. We do \textbf{not} claim that models have or have not
-``learned'' alignment/carry as concepts, nor that absolute accuracy is
-predicted from RASP alone.
-
-\paragraph{Predicted gradient.}
-Carry scan cost dominates; alignment under uneven fractions is secondary; sparse
-carry is easiest among our stresses:
-\[
-\text{uneven\_high\_carry}
-\;\succ_{\text{hard}}\;
-\text{aligned / alignment stress}
-\;\succ_{\text{hard}}\;
-\text{uneven\_low\_carry}.
-\]
-
-\paragraph{Contributions.}
-(i)~RASP program + hardness proxies for the sum;
-(ii)~controlled strata realizing the gradient;
-(iii)~Lean-checked labels;
-(iv)~multi-scale / local (Ollama) evaluation on one JSONL;
-(v)~metrics restricted to rank agreement and error-type correlation.
-
-\section{Related Work}
-% TODO: RASP/Tracr, length generalization, arithmetic LLMs, architecture vs data ablations.
+\paragraph{Scope.}
+Relative orders and error-type correlations only---not absolute accuracy forecasts,
+and not a claim that models have ``learned'' alignment/carry as concepts.
 
 \section{Method}
 
-\subsection{Task}
-Chain sum $x_1+\cdots+x_n$ with exact decimal labels; optional scratchpads with
-partial sums $s_k$.
+\subsection{Factors and clusters}
+\begin{itemize}
+  \item $A_0$: equal fractional lengths (alignment trivial).
+  \item $A_1$: uneven fractional lengths (dynamic place binding).
+  \item $C_0$: carry-sparse digit bias (short carry runs).
+  \item $C_1$: carry-dense digit bias (long carry runs).
+\end{itemize}
+Clusters: $A_0C_0$, $A_0C_1$, $A_1C_0$, $A_1C_1$ (and extensible grids).
 
-\subsection{RASP program $\Rightarrow$ theoretical difficulty}
-Executable sketch (\texttt{experiments/src/rasp/}):
+\subsection{Per-cluster RASP $\Rightarrow$ depth/head budgets}
+Shared stages: align (if $A_1$), digitwise \texttt{zipmap}, carry scan.
+Cluster-specific programs omit or deepen stages; we report
+\begin{align*}
+\mathrm{depth}_{\min}
+&\gtrsim \mathrm{depth}_{\mathrm{align}}(A)
+  + 1_{\mathrm{digitwise}}
+  + \mathrm{depth}_{\mathrm{carry}}(C,\widehat{\mathrm{run}}), \\
+\mathrm{heads}_{\min}
+&\gtrsim \#\{\text{distinct select patterns: dot, length, zipmap, pred-carry}\}.
+\end{align*}
+Predicted easy$\to$hard order typically $A_0C_0 \prec A_1C_0 \prec A_0C_1 \prec A_1C_1$
+(exact order follows measured budgets on the generated set).
+
+\subsection{Evaluation axes}
 \begin{enumerate}
-  \item Align on `.'; pad places.
-  \item Digitwise \texttt{zipmap} add.
-  \item Sequential carry scan (LSB$\to$MSB)---primary depth bottleneck.
+  \item \textbf{Fixed model, vary clusters:} does accuracy fall / error mass shift as
+        $\mathrm{depth}_{\min},\mathrm{heads}_{\min}$ rise?
+  \item \textbf{Fixed clusters, vary scale:} do larger models preserve the same relative
+        cluster order while lifting absolute accuracy?
 \end{enumerate}
-Proxies: \texttt{max\_carry\_run}, \texttt{frac\_unevenness}, \texttt{rasp\_hardness}.
-These define the \emph{a priori} difficulty of each sample before any model run.
+Local Ollama pilots ($\approx$1.5--3B) precede larger open/API sweeps on the same JSONL.
+Labels: Python exact decimals + Lean $n/10^k$ checks.
 
-\subsection{Strata}
-\begin{itemize}
-  \item \textbf{uneven\_high\_carry}: uneven fractions + dense carries.
-  \item \textbf{aligned}: equal fractions (alignment cheap; carry remains).
-  \item \textbf{uneven\_low\_carry}: uneven fractions + sparse carries.
-\end{itemize}
-Labels: Python exact decimals; Lean recheck via $n/10^k$.
-
-\subsection{Models and prompts}
-Same dataset across scales (Ollama $\approx$3--4B pilots, then larger open/API
-models). Prompt conditions (\texttt{direct}, \texttt{scratch\_partial},
-\texttt{align\_hint}, \texttt{scratch\_align}) probe elicitation without changing
-the RASP rank of items. Tools disabled.
-
-\subsection{Evaluation scope}
-\begin{itemize}
-  \item \textbf{Relative difficulty:} Spearman / pairwise order of stratum (or
-        hardness-bin) accuracy vs.\ RASP order---not absolute scores.
-  \item \textbf{Failure modes:} correlation of error-type mass
-        (\texttt{carry\_error}, \texttt{misaligned\_place}, \ldots) with the
-        stressed RASP stage.
-\end{itemize}
+\subsection{Metrics}
+Exact match; error taxonomy; axis summaries in \texttt{aggregate.json}
+(\texttt{fixed\_model\_vary\_clusters}, \texttt{fixed\_cluster\_vary\_models});
+join with RASP budgets in \texttt{rasp\_scale\_join.json}.
 
 \section{Results}
 
 \begin{table}[t]
 \centering
-\caption{Placeholder: relative accuracy order vs.\ RASP-predicted rank.}
-\label{tab:accuracy}
+\caption{Placeholder: cluster accuracies for one fixed model.}
+\label{tab:fixed-model}
 \begin{tabular}{lcccc}
 \toprule
-Stratum (RASP rank) & direct & scratch & align hint & scratch+align \\
+Model & $A_0C_0$ & $A_1C_0$ & $A_0C_1$ & $A_1C_1$ \\
 \midrule
-uneven high-carry (hardest) & -- & -- & -- & -- \\
-aligned (middle) & -- & -- & -- & -- \\
-uneven low-carry (easiest) & -- & -- & -- & -- \\
+Ollama $\approx$3B & -- & -- & -- & -- \\
 \bottomrule
 \end{tabular}
 \end{table}
 
 \begin{table}[t]
 \centering
-\caption{Placeholder: does the relative order hold across model scales?}
-\label{tab:scale}
-\begin{tabular}{lccc}
+\caption{Placeholder: scale sweep on fixed clusters (relative order).}
+\label{tab:fixed-clusters}
+\begin{tabular}{lcccc}
 \toprule
-Model scale & high-carry & aligned & low-carry \\
+Scale & $A_0C_0$ & $A_1C_0$ & $A_0C_1$ & $A_1C_1$ \\
 \midrule
-Ollama $\approx$3--4B & -- & -- & -- \\
-larger open / API & -- & -- & -- \\
+1.5B / 2B / 3B & -- & -- & -- & -- \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-\begin{figure}[t]
-\centering
-\fbox{\parbox{0.9\linewidth}{\centering\vspace{1.5cm}
-Error-type mass vs.\ RASP proxies (placeholder)\\
-(source: \texttt{experiments/results/})
-\vspace{1.5cm}}}
-\caption{Placeholder: failure-mode correlation with carry-run / unevenness.}
-\label{fig:errors}
-\end{figure}
-
 \section{Discussion}
-If models of many sizes preserve the RASP difficulty order and shift error types
-along the stressed stage, architecture-imposed computation is a plausible driver
-of failure---beyond ``not enough similar training samples.''
-If absolute accuracy rises with scale but the \emph{relative} order and
-error-type correlation stay aligned with RASP, scale mainly moves the curve
-without removing the Transformer bottleneck.
-If the order breaks under richer prompts while RASP ranks are fixed, training or
-elicitation effects dominate for that regime---useful for separating architecture
-from data.
+Agreement with budget-ranked cluster order on both axes supports architecture-linked
+difficulty. Absolute gains with scale without order changes suggest capacity lifts the
+curve while the Transformer bottleneck shape remains. Order breaks localized to $A$ or
+$C$ isolate alignment vs.\ carry-stage failures---useful beyond ``not enough similar data.''
 
 \section{Limitations}
-We study relative trends and error-type correlations only. RASP here is an
-executable sketch, not a Tracr-compiled circuit proof. Lean checks labels, not
-model traces. Early pilots use small local models.
+Budgets are faithful-RASP lower bounds, not Tracr-certified circuits. Early pilots use
+small local models and smoke-sized clusters.
 
 \section{Conclusion}
-By implementing summation in RASP, predicting sample difficulty, and checking
-whether multi-scale models match that gradient in relative difficulty and
-failure modes, we obtain a diagnostic that helps distinguish Transformer
-architectural constraints from training-distribution effects on uneven decimal
-chain sums.
+Factoring alignment and carry into independent clusters, deriving per-cluster RASP depth/head
+budgets, and testing fixed-model vs.\ fixed-cluster trends yields a diagnostic for whether
+Transformer constraints predict relative difficulty on uneven decimal chain sums.
 
 \bibliographystyle{plain}
 \bibliography{refs}

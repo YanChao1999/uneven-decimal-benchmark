@@ -7,6 +7,7 @@ import argparse
 from pathlib import Path
 
 from experiments.src.aggregate import aggregate, load_results_jsonl, write_aggregate
+from experiments.src.paths import repo_root, resolve_repo_path
 
 
 def main(argv: list[str] | None = None) -> None:
@@ -24,9 +25,11 @@ def main(argv: list[str] | None = None) -> None:
         help="aggregate.json path (default: alongside input)",
     )
     args = parser.parse_args(argv)
-    rows = load_results_jsonl(args.input)
+    root = repo_root()
+    inp = resolve_repo_path(args.input, root=root)
+    rows = load_results_jsonl(inp)
     summary = aggregate(rows)
-    out = args.output or args.input.with_name("aggregate.json")
+    out = resolve_repo_path(args.output, root=root) if args.output else inp.with_name("aggregate.json")
     write_aggregate(out, summary)
     print(f"Wrote {out}")
     print(f"accuracy={summary['accuracy']:.3f} n={summary['n_rows']}")

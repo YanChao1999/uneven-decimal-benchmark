@@ -42,6 +42,9 @@ class EvalResult:
     expected: str
     correct: bool
     error_type: ErrorType
+    cluster_id: str = ""
+    alignment_level: int = 0
+    carry_level: int = 0
     parsed_partials: list[str] = field(default_factory=list)
     expected_partials: list[str] = field(default_factory=list)
     raw_text: str = ""
@@ -209,9 +212,13 @@ def evaluate_response(
     if manual_override is not None:
         error_type = manual_override
     correct = error_type == "correct"
+    cluster_id = str(example.get("cluster_id") or example.get("stratum") or "")
     return EvalResult(
         example_id=example["id"],
-        stratum=example["stratum"],
+        stratum=str(example.get("stratum", cluster_id)),
+        cluster_id=cluster_id,
+        alignment_level=int(example.get("alignment_level", 0)),
+        carry_level=int(example.get("carry_level", 0)),
         condition=condition,
         model=model,
         temperature=temperature,

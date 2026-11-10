@@ -8,6 +8,7 @@ import json
 import shutil
 from pathlib import Path
 
+from experiments.src.paths import repo_root, resolve_repo_path
 from experiments.src.verify_lean import verify_dataset
 
 
@@ -30,6 +31,7 @@ def main(argv: list[str] | None = None) -> None:
         help="Only emit Generated.lean; do not run lake",
     )
     args = parser.parse_args(argv)
+    root = repo_root()
 
     run_lake = not args.no_lake
     if run_lake and shutil.which("lake") is None:
@@ -37,8 +39,8 @@ def main(argv: list[str] | None = None) -> None:
         run_lake = False
 
     result = verify_dataset(
-        args.dataset,
-        args.lean_dir,
+        resolve_repo_path(args.dataset, root=root),
+        resolve_repo_path(args.lean_dir, root=root),
         limit=args.limit,
         run_lake=run_lake,
     )

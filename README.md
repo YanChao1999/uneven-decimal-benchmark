@@ -1,81 +1,69 @@
 # uneven-decimal-benchmark
 
-RASP-predicted difficulty for uneven decimal **chain sums**.
+Two **independent** difficulty factors for decimal chain sums:
 
-We implement the summation procedure as a RASP program (align → digitwise add → carry scan),
-obtain **theoretical sample difficulty**, then check whether models of different scales show
-**relative difficulty rankings** and **failure-mode distributions** that match this
-Transformer-native abstraction.
+1. **Alignment (A)** — decimal-point / fractional unevenness (`A0` aligned, `A1` uneven)  
+2. **Carry-chain degree (C)** — carry density (`C0` low, `C1` high)
 
-All prompts, paper text, and docs are in **English**.
+Their product yields sample **clusters** (`A0C0` … `A1C1`). For each cluster we write a
+RASP program and estimate **min depth budget** and **min head budget**, then test open models
+on two axes:
 
-## Claim (scope)
+- **Fixed model → vary clusters**  
+- **Fixed clusters → vary model scale**
 
-- Failures on this task need not come only from missing similar training samples; they can
-  also reflect **inherent Transformer computational constraints** that RASP idealizes.
-- If real models’ error trends track the RASP difficulty gradient, that supports an
-  architecture-linked account and helps separate **architecture** vs **training distribution**.
-- This study examines **only**:
-  1. relative difficulty trends  
-  2. correlation of error-type distributions with RASP proxies  
-
-Predicted ladder: **high-carry uneven ≻ alignment / place structure ≻ low-carry**.
-
-## Layout
-
-```
-paper/                 LaTeX paper skeleton
-experiments/
-  lean/                Lean 4 ground-truth checks (Lake)
-  src/                 Python generators, prompts, eval, RASP
-  configs/             YAML for datasets, models, eval
-  data/fixtures/       Tiny committed JSONL
-  results/             Eval outputs (mostly gitignored)
-  scripts/             CLI entrypoints
-```
+Scope: relative difficulty trends + error-type correlations (architecture vs training distribution).
 
 ## Setup
 
 ```bash
 uv venv .venv && source .venv/bin/activate
 uv pip install -e .
-cp .env.example .env   # cloud APIs only
 ```
 
-### Lean 4 + Lake (via elan)
+### Factorial smoke + dry-run
 
 ```bash
-curl https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh -sSf | sh
-source "$HOME/.elan/env"
-lean --version && lake --version
-cd experiments/lean && lake build
-```
+python -m experiments.scripts.generate_cli \
+  --config experiments/configs/dataset_factorial_smoke.yaml
 
-### Local Ollama pilot (~3B)
+python -m experiments.scripts.rasp_cli \
+  --dataset experiments/data/fixtures/factorial_smoke.jsonl
 
-```bash
-ollama serve
-ollama pull qwen2.5:3b
 python -m experiments.scripts.eval_cli \
-  --config experiments/configs/eval_ollama_smoke.yaml \
-  --no-dry-run
+  --config experiments/configs/eval_factorial_dryrun.yaml --dry-run
 ```
 
-## Smoke path
+### Ollama axes (after `ollama pull` of small models)
 
 ```bash
-python -m experiments.scripts.generate_cli --config experiments/configs/dataset_smoke.yaml
-python -m experiments.scripts.rasp_cli --dataset experiments/data/fixtures/smoke.jsonl --check-only
-python -m experiments.scripts.eval_cli --config experiments/configs/eval_smoke.yaml --dry-run
+# Axis 1: one model, all clusters
+python -m experiments.scripts.eval_cli \
+  --config experiments/configs/eval_fixed_model_vary_clusters.yaml --no-dry-run
+
+# Axis 2: all clusters, several scales
+python -m experiments.scripts.eval_cli \
+  --config experiments/configs/eval_fixed_clusters_vary_scale.yaml --no-dry-run
 ```
 
-## Dataset strata
+See README history / earlier sections for Lean (`elan`) and Ollama install notes.
 
-| ID | RASP role |
-|----|-----------|
-| `uneven_high_carry` | Hardest — dense carries + uneven fractions |
-| `aligned` | Middle — alignment cheap; carry remains |
-| `uneven_low_carry` | Easiest stress — uneven but sparse carries |
+### Lean
+
+```bash
+source "$HOME/.elan/env"
+python -m experiments.scripts.verify_lean_cli \
+  --dataset experiments/data/fixtures/factorial_smoke.jsonl
+```
+
+## Clusters
+
+| ID | Alignment | Carry | Typical RASP stress |
+|----|-----------|-------|---------------------|
+| `A0C0` | aligned | low | baseline |
+| `A1C0` | uneven | low | alignment heads/depth |
+| `A0C1` | aligned | high | carry depth |
+| `A1C1` | uneven | high | both |
 
 ## License
 

@@ -4,10 +4,12 @@
 from __future__ import annotations
 
 import argparse
+import json
 from pathlib import Path
 
 from experiments.src.aggregate import aggregate, load_results_jsonl, write_aggregate
 from experiments.src.generate import load_jsonl, load_yaml
+from experiments.src.paths import repo_root, resolve_repo_path
 from experiments.src.rasp.analyze import (
     difficulty_report,
     join_scale_trends,
@@ -34,8 +36,8 @@ def main(argv: list[str] | None = None) -> None:
         help="Allow real API clients from models.yaml",
     )
     args = parser.parse_args(argv)
-    root = Path.cwd()
-    cfg = load_yaml(args.config)
+    root = repo_root()
+    cfg = load_yaml(resolve_repo_path(args.config, root=root))
     if args.dry_run:
         cfg["dry_run"] = True
     if args.no_dry_run:
@@ -43,27 +45,24 @@ def main(argv: list[str] | None = None) -> None:
 
     out = run_eval(cfg, repo_root=root)
     summary = aggregate(load_results_jsonl(out))
-    agg_path = root / cfg["output_dir"] / "aggregate.json"
+    agg_path = resolve_repo_path(Path(cfg["output_dir"]) / "aggregate.json", root=root)
     write_aggregate(agg_path, summary)
     print(f"Wrote raw results to {out}")
     print(f"Wrote aggregate to {agg_path}")
     print(f"Overall accuracy: {summary['accuracy']:.3f} ({summary['n_correct']}/{summary['n_rows']})")
 
-    # Optional RASP difficulty + scale-trend join (used by eval_scale_smoke.yaml).
     if cfg.get("rasp_report") or cfg.get("scale_join"):
-        examples = load_jsonl(root / cfg["dataset"])
+        examples = load_jsonl(resolve_repo_path(cfg["dataset"], root=root))
         rasp = difficulty_report(examples)
         if cfg.get("rasp_report"):
-            rasp_path = root / cfg["rasp_report"]
+            rasp_path = resolve_repo_path(cfg["rasp_report"], root=root)
             write_difficulty_report(rasp_path, rasp)
             print(f"Wrote RASP difficulty report to {rasp_path}")
         if cfg.get("scale_join"):
             joined = join_scale_trends(rasp, summary)
-            join_path = root / cfg["scale_join"]
+            join_path = resolve_repo_path(cfg["scale_join"], root=root)
             join_path.parent.mkdir(parents=True, exist_ok=True)
-            join_path.write_text(
-                __import__("json").dumps(joined, indent=2) + "\n", encoding="utf-8"
-            )
+            join_path.write_text(json.dumps(joined, indent=2) + "\n", encoding="utf-8")
             print(f"Wrote RASP×scale join to {join_path}")
 
 

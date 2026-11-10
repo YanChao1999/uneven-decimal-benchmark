@@ -1,8 +1,25 @@
 # uneven-decimal-benchmark
 
-Reproducible scaffold for studying whether language models learn **explicit decimal-point alignment and carry**, or only approximate chain sums distributionally.
+RASP-predicted difficulty for uneven decimal **chain sums**.
+
+We implement the summation procedure as a RASP program (align → digitwise add → carry scan),
+obtain **theoretical sample difficulty**, then check whether models of different scales show
+**relative difficulty rankings** and **failure-mode distributions** that match this
+Transformer-native abstraction.
 
 All prompts, paper text, and docs are in **English**.
+
+## Claim (scope)
+
+- Failures on this task need not come only from missing similar training samples; they can
+  also reflect **inherent Transformer computational constraints** that RASP idealizes.
+- If real models’ error trends track the RASP difficulty gradient, that supports an
+  architecture-linked account and helps separate **architecture** vs **training distribution**.
+- This study examines **only**:
+  1. relative difficulty trends  
+  2. correlation of error-type distributions with RASP proxies  
+
+Predicted ladder: **high-carry uneven ≻ alignment / place structure ≻ low-carry**.
 
 ## Layout
 
@@ -17,80 +34,48 @@ experiments/
   scripts/             CLI entrypoints
 ```
 
-## Hypothesis
-
-1. LLMs may lack a stable **alignment + carry** algorithm for uneven decimals.
-2. A **RASP** program for align → digitwise add → carry scan exposes inherent bottlenecks (especially long carry runs).
-3. On a **fixed dataset**, accuracy trends and error-type shifts across **model scales** should be predictable from RASP difficulty proxies (`max_carry_run`, `frac_unevenness`, `rasp_hardness`).
-
 ## Setup
 
 ```bash
-python3 -m venv .venv
-source .venv/bin/activate
-pip install -e .
-# Optional: Lean 4 + Lake for formal label checks
-# Optional API keys: copy .env.example → .env
+uv venv .venv && source .venv/bin/activate
+uv pip install -e .
+cp .env.example .env   # cloud APIs only
 ```
 
-## Smoke path (no API spend)
+### Lean 4 + Lake (via elan)
 
 ```bash
-# 1) Generate tiny fixture dataset
+curl https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh -sSf | sh
+source "$HOME/.elan/env"
+lean --version && lake --version
+cd experiments/lean && lake build
+```
+
+### Local Ollama pilot (~3B)
+
+```bash
+ollama serve
+ollama pull qwen2.5:3b
+python -m experiments.scripts.eval_cli \
+  --config experiments/configs/eval_ollama_smoke.yaml \
+  --no-dry-run
+```
+
+## Smoke path
+
+```bash
 python -m experiments.scripts.generate_cli --config experiments/configs/dataset_smoke.yaml
-
-# 2) Emit Lean checks (runs lake build if available)
-python -m experiments.scripts.verify_lean_cli --dataset experiments/data/fixtures/smoke.jsonl
-
-# 3) RASP program + difficulty report
-python -m experiments.scripts.rasp_cli --dataset experiments/data/fixtures/smoke.jsonl
-
-# 4) Dry-run eval (local stub)
+python -m experiments.scripts.rasp_cli --dataset experiments/data/fixtures/smoke.jsonl --check-only
 python -m experiments.scripts.eval_cli --config experiments/configs/eval_smoke.yaml --dry-run
-
-# 5) Multi-scale dry-run + RASP×scale join
-python -m experiments.scripts.eval_cli --config experiments/configs/eval_scale_smoke.yaml --dry-run
 ```
 
 ## Dataset strata
 
-| ID | Description |
-|----|-------------|
-| `aligned` | Equal fractional lengths |
-| `uneven_low_carry` | Uneven fractions, carry-sparse |
-| `uneven_high_carry` | Uneven fractions, carry-dense |
-
-## Prompt conditions
-
-| ID | Behavior |
-|----|----------|
-| `direct` | Final answer only; no tools |
-| `scratch_partial` | Mandatory running partial sums |
-| `align_hint` | Final answer + alignment/carry reminder |
-| `scratch_align` | Partials + alignment/carry reminder |
-
-## RASP module
-
-`experiments/src/rasp/` implements an executable RASP-style sketch:
-
-1. locate / align on the decimal point  
-2. digitwise column sum (`zipmap`)  
-3. sequential carry scan (the depth bottleneck)
-
-`udb-rasp` / `rasp_cli` writes `rasp_difficulty.json` with per-example hardness and the scale-trend hypothesis text used in the paper.
-
-## Models
-
-- OpenAI-compatible: `OPENAI_API_KEY`, `OPENAI_BASE_URL`
-- Hugging Face open models (e.g. Qwen): `HF_TOKEN`, `HF_BASE_URL`
-- Scale roster: `experiments/configs/models_scale.yaml`
-- Dry-run always uses `local_stub` (no network)
-
-## Paper
-
-```bash
-cd paper && make
-```
+| ID | RASP role |
+|----|-----------|
+| `uneven_high_carry` | Hardest — dense carries + uneven fractions |
+| `aligned` | Middle — alignment cheap; carry remains |
+| `uneven_low_carry` | Easiest stress — uneven but sparse carries |
 
 ## License
 

@@ -146,27 +146,25 @@ INHERENT_DIFFICULTIES: list[dict[str, str]] = [
 
 SCALE_HYPOTHESIS: dict[str, str] = {
     "statement": (
-        "Across model scales evaluated on the same uneven-decimal dataset, accuracy trends "
-        "and shifts in error-type mass (especially misaligned_place vs carry_error) are "
-        "predictable from RASP difficulty proxies — in particular max_carry_run and "
-        "frac_unevenness — rather than from token length alone."
+        "We implement chain-sum in RASP (a Transformer-native abstraction), derive theoretical "
+        "sample difficulty, then check whether models of different scales match that gradient "
+        "in relative difficulty and failure-mode distributions. Matching implicates inherent "
+        "Transformer computational constraints—not only missing similar training exemplars—"
+        "and helps separate architecture effects from training-distribution effects. "
+        "This study examines only relative difficulty trends and error-type correlations."
     ),
     "prediction_1": (
-        "For fixed prompt condition, accuracy should decline monotonically with "
-        "rasp_hardness bins; larger models shift the curve up but preserve the ordering "
-        "across strata (aligned < uneven_low_carry < uneven_high_carry) if failures are "
-        "algorithmic rather than purely memorized."
+        "Relative accuracy should follow uneven_high_carry ≤ aligned ≤ uneven_low_carry "
+        "(higher is easier), i.e. many carries ≻ alignment pressure ≻ few carries."
     ),
     "prediction_2": (
-        "If scale mainly adds distributional memorization, high-carry uneven items remain "
-        "hard and carry_error/misaligned_place dominate even at large scale — matching "
-        "RASP's carry-scan bottleneck. If scale learns the algorithm, long carry runs "
-        "improve disproportionately."
+        "Error-type mass should correlate with the stressed RASP stage: carry_error with "
+        "max_carry_run; misaligned_place with frac_unevenness under low carry."
     ),
     "prediction_3": (
-        "Prompt conditions that externalize the RASP steps (scratch_partial, align_hint) "
-        "should interact with scale: smaller models benefit more from explicit alignment "
-        "instructions iff they lack an internal carry scan."
+        "If the relative order and error correlations hold from small local models "
+        "(e.g. Ollama ~3B) through larger models, the gradient is architecture-linked; "
+        "prompt/scale breaks with fixed RASP ranks point toward data or elicitation."
     ),
 }
 

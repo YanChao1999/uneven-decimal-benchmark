@@ -45,6 +45,10 @@ def build_client(spec: dict[str, Any]) -> ModelClient:
         from experiments.src.clients.hf_client import HuggingFaceClient
 
         return HuggingFaceClient(model=model)
+    if provider == "ollama":
+        from experiments.src.clients.ollama_client import OllamaClient
+
+        return OllamaClient(model=model, base_url=spec.get("base_url"))
     if provider == "local_stub":
         from experiments.src.clients.local_stub import LocalStubClient
 

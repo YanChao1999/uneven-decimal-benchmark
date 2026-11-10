@@ -1,0 +1,170 @@
+\documentclass[11pt]{article}
+
+\usepackage[margin=1in]{geometry}
+\usepackage{booktabs}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{amsmath}
+
+\title{Do Language Models Learn Decimal Alignment and Carry?\\
+\large RASP Difficulty and Scaling Trends on Uneven Decimal Chain Sums}
+\author{Anonymous Authors}
+\date{}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+We introduce a reproducible benchmark for chain summation of decimal numbers with controlled
+alignment and carry structure. Our working hypothesis is that large language models may not
+stably acquire the explicit base-10 algorithm of decimal-point alignment and carry propagation,
+and instead approximate solutions via distributional pattern matching. We encode the target
+algorithm as a RASP-style program (align $\rightarrow$ digitwise add $\rightarrow$ carry scan),
+analyze its inherent bottlenecks, and evaluate models of multiple scales on the \emph{same}
+dataset to test whether accuracy trends and error-type distributions are predictable from RASP
+difficulty proxies. The repository pairs seeded Python generation with Lean-checked labels,
+four prompt conditions, and multi-model adapters. This document is a paper skeleton; empirical
+tables will be filled from \texttt{experiments/results/}.
+\end{abstract}
+
+\section{Introduction}
+
+Decimal addition is elementary for humans once the place-value algorithm is mastered:
+align by the decimal point, add column-wise, and propagate carries. Modern LLMs solve many
+arithmetic prompts well, yet failures often concentrate on place-value manipulations---especially
+when fractional lengths are uneven or carries are dense.
+
+\paragraph{Hypothesis.}
+Models may not have stably learned the \emph{explicit} alignment+carry procedure as an
+algorithmic skill. Observed competence may instead reflect distributional approximation over
+pretraining co-occurrences of digit strings.
+
+\paragraph{RASP scaling hypothesis.}
+If the algorithmic bottleneck is real, then a RASP encoding of alignment and carry should
+\emph{predict} how accuracy and error types change across model scales on a fixed dataset:
+items with long carry runs and high fractional unevenness remain hard unless scale induces a
+genuine carry-scan algorithm rather than memorization.
+
+This paper contributes: (i)~controllable generators for three difficulty strata;
+(ii)~Lean verification of labels; (iii)~a RASP program and difficulty analysis;
+(iv)~prompt ablations; (v)~a multi-scale evaluation harness.
+
+\section{Related Work}
+% TODO: arithmetic benchmarks, chain-of-thought, RASP/Tracr, formal verification of datasets.
+
+\section{Method}
+
+\subsection{Task}
+Each instance is a chain sum $x_1 + x_2 + \cdots + x_n$ with exact decimal string labels.
+Models must return a final answer; scratchpad conditions additionally require running totals
+$s_k = s_{k-1} + x_k$.
+
+\subsection{Dataset strata}
+\begin{itemize}
+  \item \textbf{aligned}: equal fractional lengths.
+  \item \textbf{uneven\_low\_carry}: uneven fractional lengths, carry-sparse digit bias.
+  \item \textbf{uneven\_high\_carry}: uneven fractional lengths, carry-dense digit bias.
+\end{itemize}
+Ground-truth sums are computed with arbitrary-precision decimals in Python and independently
+rechecked in Lean via scaled-integer rationals $n/10^k$.
+
+\subsection{RASP program}
+We implement an executable RASP-style sketch (\texttt{experiments/src/rasp/}):
+\begin{enumerate}
+  \item \textbf{Align:} locate `.' via content-based select; pad fractional/integer places.
+  \item \textbf{Digitwise add:} \texttt{zipmap} over aligned place values.
+  \item \textbf{Carry scan:} sequential propagate from least- to most-significant place.
+\end{enumerate}
+\paragraph{Inherent difficulties.}
+(1)~Dot localization under variable string layouts;
+(2)~global max-fraction padding for uneven lengths;
+(3)~carry as an $O(\mathrm{width})$ sequential dependence---the dominant depth bottleneck for
+bounded-depth Transformers;
+(4)~chain-sum folding, which restarts alignment at each step.
+We summarize instances with proxies \texttt{max\_carry\_run}, \texttt{frac\_unevenness}, and a
+scalar \texttt{rasp\_hardness}.
+
+\subsection{Prompt conditions}
+\begin{enumerate}
+  \item \texttt{direct}: final answer only; tools disabled.
+  \item \texttt{scratch\_partial}: mandatory per-step partial sums.
+  \item \texttt{align\_hint}: final answer with explicit alignment/carry instructions.
+  \item \texttt{scratch\_align}: partial sums plus alignment/carry instructions.
+\end{enumerate}
+Sampling varies temperature and repetition to estimate accuracy and error-type distributions.
+
+\subsection{Models and scales}
+Adapters cover OpenAI-compatible Chat Completions and Hugging Face OpenAI-compatible endpoints
+(e.g., Qwen at multiple sizes). Function calling / tools are disabled. Scale sweeps use the
+same JSONL dataset so that RASP hardness bins are comparable across models.
+
+\subsection{Metrics}
+Exact-match accuracy on normalized decimal strings; heuristic error taxonomy including
+misalignment, carry errors, truncation, format failures, and inconsistent partial sums;
+joined reports of accuracy vs.\ RASP hardness by stratum and model scale.
+
+\section{Results}
+
+% Populate from experiments/results/*/aggregate.json and rasp_scale_join.json
+\begin{table}[t]
+\centering
+\caption{Placeholder accuracy by stratum and prompt condition.}
+\label{tab:accuracy}
+\begin{tabular}{lcccc}
+\toprule
+Stratum & direct & scratch & align hint & scratch+align \\
+\midrule
+aligned & -- & -- & -- & -- \\
+uneven, low carry & -- & -- & -- & -- \\
+uneven, high carry & -- & -- & -- & -- \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[t]
+\centering
+\caption{Placeholder: accuracy vs.\ model scale on a fixed dataset (RASP-predicted order).}
+\label{tab:scale}
+\begin{tabular}{lccc}
+\toprule
+Model (scale) & aligned & uneven low-carry & uneven high-carry \\
+\midrule
+small open model & -- & -- & -- \\
+mid open model & -- & -- & -- \\
+large open / proprietary & -- & -- & -- \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{figure}[t]
+\centering
+\fbox{\parbox{0.9\linewidth}{\centering\vspace{1.5cm}
+Error-type distribution and RASP-hardness curves (placeholder)\\
+(source: \texttt{experiments/results/})
+\vspace{1.5cm}}}
+\caption{Placeholder for error taxonomy and scale$\times$hardness plots.}
+\label{fig:errors}
+\end{figure}
+
+\section{Discussion}
+If accuracy collapses primarily under uneven high-carry settings, and the stratum ordering
+matches RASP hardness across scales, this supports algorithmic bottlenecks rather than
+uniform distributional noise. If larger models improve overall accuracy but preserve the same
+error-type mass on long carry runs, scale may buy memorization without a stable carry scan.
+Prompt conditions that externalize RASP steps test whether the algorithm is latent but weakly
+elicited.
+
+\section{Limitations}
+Phase-1 scaffolding does not include large-scale API sweeps, Tracr compilation to weights, or
+human annotation of all error tags. Lean checks verify dataset labels, not model proofs. The
+RASP interpreter is a faithful sketch, not a machine-checked compilation to a Transformer.
+
+\section{Conclusion}
+We release a reproducible scaffold linking uneven-decimal chain sums, Lean-checked labels, a
+RASP alignment+carry program, and multi-scale LLM evaluation---to test whether RASP difficulty
+predicts scaling trends for place-value arithmetic.
+
+\bibliographystyle{plain}
+\bibliography{refs}
+
+\end{document}

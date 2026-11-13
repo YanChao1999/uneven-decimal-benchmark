@@ -1,0 +1,28 @@
+seed: 42
+output: experiments/data/dataset_default.jsonl
+
+# Shared defaults; stratum blocks may override
+defaults:
+  n_addends: 5
+  int_digits_min: 1
+  int_digits_max: 3
+  frac_digits_min: 1
+  frac_digits_max: 6
+  allow_negative: false
+
+strata:
+  aligned:
+    count: 100
+    aligned: true
+    frac_digits: 4
+    carry_bias: moderate  # neutral digit sampling
+
+  uneven_low_carry:
+    count: 100
+    aligned: false
+    carry_bias: low
+
+  uneven_high_carry:
+    count: 100
+    aligned: false
+    carry_bias: high

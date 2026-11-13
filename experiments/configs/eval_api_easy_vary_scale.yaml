@@ -1,0 +1,25 @@
+# API models on the easy factorial set (after you set keys in .env).
+# Generate data first:
+#   python -m experiments.scripts.generate_cli --config experiments/configs/dataset_factorial_easy.yaml
+dataset: experiments/data/dataset_factorial_easy.jsonl
+output_dir: experiments/results/api_easy_vary_scale
+
+models:
+  - deepseek-chat
+  - cursor-default
+  # optional:
+  # - deepseek-reasoner
+  # - gpt-4o-mini   # if listed in models.yaml / add as needed
+
+conditions:
+  - direct
+
+sampling:
+  temperatures: [0.0]
+  n_samples: 1
+  seed: 0
+  max_tokens: 512
+
+dry_run: false
+rasp_report: experiments/results/api_easy_vary_scale/rasp_difficulty.json
+scale_join: experiments/results/api_easy_vary_scale/rasp_scale_join.json

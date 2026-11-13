@@ -1,0 +1,25 @@
+# Round 2: same small models, all four prompt conditions (slower).
+dataset: experiments/data/fixtures/smoke.jsonl
+output_dir: experiments/results/ollama_pilot_round2
+
+models:
+  - ollama-qwen2.5-1.5b
+  - ollama-qwen2.5-3b
+  - ollama-llama3.2-3b
+  - ollama-gemma2-2b
+
+conditions:
+  - direct
+  - scratch_partial
+  - align_hint
+  - scratch_align
+
+sampling:
+  temperatures: [0.0]
+  n_samples: 1
+  seed: 0
+  max_tokens: 512
+
+dry_run: false
+rasp_report: experiments/results/ollama_pilot_round2/rasp_difficulty.json
+scale_join: experiments/results/ollama_pilot_round2/rasp_scale_join.json

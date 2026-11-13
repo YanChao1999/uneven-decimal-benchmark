@@ -8,22 +8,22 @@
 
 \title{Two-Factor RASP Budgets for Uneven Decimal Chain Sums\\
 \large Alignment $\times$ Carry Clusters, Depth/Head Lower Bounds, and Dual Eval Axes}
-\author{Anonymous Authors}
+\author{YAN Chao}
 \date{}
 
 \begin{document}
 \maketitle
 
 \begin{abstract}
-We factor decimal chain-sum difficulty into two \emph{independent} axes:
+I factor decimal chain-sum difficulty into two \emph{independent} axes:
 \textbf{decimal-point alignment} (fractional unevenness) and \textbf{carry-chain degree}.
 Their Cartesian product yields sample clusters $\{A_i\times C_j\}$.
-For each cluster we write a specialized RASP program and derive
+For each cluster I write a specialized RASP program and derive
 \emph{minimum depth} and \emph{minimum head} budgets---Transformer-native resource
 lower bounds for a faithful align$\to$digitwise-add$\to$carry algorithm.
-We then evaluate open models along two complementary trends:
+I then evaluate open models along two complementary trends:
 (1)~\textbf{fixed model, vary clusters}; (2)~\textbf{fixed clusters, vary scale}.
-We only claim relative difficulty trends and error-type correlations with these budgets,
+I only claim relative difficulty trends and error-type correlations with these budgets,
 helping separate architectural constraints from training-distribution effects.
 \end{abstract}
 
@@ -35,15 +35,15 @@ executed under Transformer-native limits on depth (sequential carry) and attenti
 patterns (alignment selects).
 
 \paragraph{Design.}
-Split difficulty into orthogonal factors $A$ (alignment) and $C$ (carry degree).
-Build independent clusters $A_iC_j$. For each cluster, instantiate a RASP sketch and
-read off $\mathrm{depth}_{\min}$ and $\mathrm{heads}_{\min}$.
-Test whether real models track those predictions on two axes---within a model across
-clusters, and across scales on fixed clusters.
+I split difficulty into orthogonal factors $A$ (alignment) and $C$ (carry degree),
+build independent clusters $A_iC_j$, and for each cluster instantiate a RASP sketch
+to read off $\mathrm{depth}_{\min}$ and $\mathrm{heads}_{\min}$.
+I then test whether real models track those predictions on two axes---within a model
+across clusters, and across scales on fixed clusters.
 
 \paragraph{Scope.}
-Relative orders and error-type correlations only---not absolute accuracy forecasts,
-and not a claim that models have ``learned'' alignment/carry as concepts.
+I only claim relative orders and error-type correlations---not absolute accuracy
+forecasts, and not that models have ``learned'' alignment/carry as concepts.
 
 \section{Method}
 
@@ -58,7 +58,7 @@ Clusters: $A_0C_0$, $A_0C_1$, $A_1C_0$, $A_1C_1$ (and extensible grids).
 
 \subsection{Per-cluster RASP $\Rightarrow$ depth/head budgets}
 Shared stages: align (if $A_1$), digitwise \texttt{zipmap}, carry scan.
-Cluster-specific programs omit or deepen stages; we report
+Cluster-specific programs omit or deepen stages; I report
 \begin{align*}
 \mathrm{depth}_{\min}
 &\gtrsim \mathrm{depth}_{\mathrm{align}}(A)
@@ -124,9 +124,10 @@ Budgets are faithful-RASP lower bounds, not Tracr-certified circuits. Early pilo
 small local models and smoke-sized clusters.
 
 \section{Conclusion}
-Factoring alignment and carry into independent clusters, deriving per-cluster RASP depth/head
-budgets, and testing fixed-model vs.\ fixed-cluster trends yields a diagnostic for whether
-Transformer constraints predict relative difficulty on uneven decimal chain sums.
+By factoring alignment and carry into independent clusters, deriving per-cluster RASP
+depth/head budgets, and testing fixed-model vs.\ fixed-cluster trends, I obtain a
+diagnostic for whether Transformer constraints predict relative difficulty on uneven
+decimal chain sums.
 
 \bibliographystyle{plain}
 \bibliography{refs}

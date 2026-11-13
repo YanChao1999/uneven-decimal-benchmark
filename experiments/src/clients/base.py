@@ -40,7 +40,37 @@ def build_client(spec: dict[str, Any]) -> ModelClient:
     if provider == "openai":
         from experiments.src.clients.openai_client import OpenAIClient
 
-        return OpenAIClient(model=model)
+        return OpenAIClient(
+            model=model,
+            api_key_env=spec.get("api_key_env", "OPENAI_API_KEY"),
+            base_url_env=spec.get("base_url_env", "OPENAI_BASE_URL"),
+            default_base_url=spec.get("base_url", "https://api.openai.com/v1"),
+            provider="openai",
+            disable_tools=True,
+        )
+    if provider == "deepseek":
+        from experiments.src.clients.openai_client import OpenAIClient
+
+        return OpenAIClient(
+            model=model,
+            api_key_env=spec.get("api_key_env", "DEEPSEEK_API_KEY"),
+            base_url_env=spec.get("base_url_env", "DEEPSEEK_BASE_URL"),
+            default_base_url=spec.get("base_url", "https://api.deepseek.com"),
+            provider="deepseek",
+            disable_tools=True,
+        )
+    if provider == "cursor":
+        from experiments.src.clients.openai_client import OpenAIClient
+
+        # Cursor OpenAI-compatible gateway — set CURSOR_API_KEY / CURSOR_BASE_URL yourself.
+        return OpenAIClient(
+            model=model,
+            api_key_env=spec.get("api_key_env", "CURSOR_API_KEY"),
+            base_url_env=spec.get("base_url_env", "CURSOR_BASE_URL"),
+            default_base_url=spec.get("base_url", "https://api.cursor.com/v1"),
+            provider="cursor",
+            disable_tools=True,
+        )
     if provider == "hf":
         from experiments.src.clients.hf_client import HuggingFaceClient
 

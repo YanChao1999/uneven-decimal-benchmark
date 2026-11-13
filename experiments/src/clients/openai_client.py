@@ -1,4 +1,4 @@
-"""OpenAI-compatible Chat Completions client (tools disabled)."""
+"""OpenAI-compatible Chat Completions client (tools / function-calling disabled)."""
 
 from __future__ import annotations
 
@@ -17,16 +17,22 @@ class OpenAIClient:
         *,
         api_key: str | None = None,
         base_url: str | None = None,
-        timeout: float = 60.0,
+        api_key_env: str = "OPENAI_API_KEY",
+        base_url_env: str = "OPENAI_BASE_URL",
+        default_base_url: str = "https://api.openai.com/v1",
+        provider: str = "openai",
+        timeout: float = 120.0,
+        disable_tools: bool = True,
     ) -> None:
         self.name = model
-        self.provider = "openai"
+        self.provider = provider
         self.model = model
-        self.api_key = api_key or os.environ.get("OPENAI_API_KEY", "")
-        self.base_url = (base_url or os.environ.get("OPENAI_BASE_URL", "https://api.openai.com/v1")).rstrip(
-            "/"
-        )
+        self.api_key = api_key or os.environ.get(api_key_env, "")
+        self.api_key_env = api_key_env
+        env_base = os.environ.get(base_url_env)
+        self.base_url = (base_url or env_base or default_base_url).rstrip("/")
         self.timeout = timeout
+        self.disable_tools = disable_tools
 
     def complete(
         self,
@@ -37,15 +43,16 @@ class OpenAIClient:
         seed: int | None = None,
     ) -> ModelResponse:
         if not self.api_key:
-            raise RuntimeError("OPENAI_API_KEY is not set")
+            raise RuntimeError(f"{self.api_key_env} is not set")
         payload: dict[str, Any] = {
             "model": self.model,
             "messages": messages,
             "temperature": temperature,
             "max_tokens": max_tokens,
-            # Explicitly disable tools / function calling.
-            "tools": [],
         }
+        # Disable tools without sending an empty tools=[] (some providers 400 on that).
+        if self.disable_tools:
+            payload["tool_choice"] = "none"
         if seed is not None:
             payload["seed"] = seed
         headers = {
@@ -56,5 +63,12 @@ class OpenAIClient:
             resp = client.post(f"{self.base_url}/chat/completions", json=payload, headers=headers)
             resp.raise_for_status()
             data = resp.json()
-        text = data["choices"][0]["message"].get("content") or ""
+        message = data["choices"][0]["message"]
+        text = message.get("content") or ""
+        # If a provider still returns tool_calls, refuse to treat them as answers.
+        if self.disable_tools and message.get("tool_calls"):
+            raise RuntimeError(
+                f"Provider {self.provider} returned tool_calls despite tool_choice=none; "
+                "aborting so arithmetic is not delegated to tools."
+            )
         return ModelResponse(text=text, model=self.model, provider=self.provider, raw=data)

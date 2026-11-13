@@ -1,5 +1,5 @@
 # Model adapters. API keys come from environment variables (see .env.example).
-# tools / function calling are always disabled by the clients.
+# tools / function calling are always disabled by the clients + prompt text.
 
 models:
   gpt-4o:
@@ -12,13 +12,35 @@ models:
     model: gpt-4.1-mini
     max_tokens: 1024
 
+  # DeepSeek (OpenAI-compatible). Set DEEPSEEK_API_KEY.
+  deepseek-chat:
+    provider: deepseek
+    model: deepseek-chat
+    max_tokens: 1024
+
+  deepseek-reasoner:
+    provider: deepseek
+    model: deepseek-reasoner
+    max_tokens: 2048
+
+  # Cursor OpenAI-compatible gateway. Set CURSOR_API_KEY and CURSOR_BASE_URL.
+  # Adjust `model` to whatever id your Cursor endpoint expects.
+  cursor-default:
+    provider: cursor
+    model: cursor-default
+    max_tokens: 1024
+
+  cursor-composer:
+    provider: cursor
+    model: composer-1
+    max_tokens: 1024
+
   qwen2.5-7b-instruct:
     provider: hf
     model: Qwen/Qwen2.5-7B-Instruct
     max_tokens: 1024
 
   # Local Ollama pilots (CPU-friendly on ~14GB RAM, no GPU).
-  # Pull: ollama pull <model>
   ollama-qwen2.5-1.5b:
     provider: ollama
     model: qwen2.5:1.5b
@@ -49,7 +71,6 @@ models:
     approx_params_b: 3.8
     max_tokens: 1024
 
-  # Deterministic stub for pipeline dry-runs (no network).
   local-stub:
     provider: local_stub
     model: local-stub

@@ -9,6 +9,11 @@ PromptCondition = Literal["direct", "scratch_partial", "align_hint", "scratch_al
 ANSWER_TAG = "FINAL_ANSWER"
 PARTIAL_TAG = "PARTIAL"
 
+_NO_TOOLS = (
+    "Do not use tools, calculators, code interpreters, function calling, plugins, "
+    "web search, or any external aids. Solve using only your own reasoning over the text."
+)
+
 _ALIGNMENT_RULES = (
     "When adding decimals, align numbers by the decimal point (not by the leftmost digit). "
     "Pad shorter fractional parts with zeros on the right if helpful. "
@@ -31,13 +36,14 @@ def build_messages(
     expression = format_addends(addends)
     system = (
         "You are a careful arithmetic assistant. "
-        "Do not use tools, calculators, or external functions. "
+        f"{_NO_TOOLS} "
         "Work only from the text of the problem."
     )
 
     if condition == "direct":
         user = (
             f"Compute the sum of the following decimals:\n{expression}\n\n"
+            f"{_NO_TOOLS}\n"
             "Do not show intermediate work. "
             f"Reply with exactly one line of the form `{answer_tag}: <decimal>` "
             "and nothing else."
@@ -45,15 +51,16 @@ def build_messages(
     elif condition == "scratch_partial":
         user = (
             f"Compute the chain sum of the following decimals:\n{expression}\n\n"
+            f"{_NO_TOOLS}\n"
             "You must accumulate step by step. After including each addend, write a line "
             f"`{partial_tag} k: <running_total>` for k = 1..n. "
-            f"End with `{answer_tag}: <decimal>` equal to the final running total. "
-            "Do not use tools."
+            f"End with `{answer_tag}: <decimal>` equal to the final running total."
         )
     elif condition == "align_hint":
         user = (
             f"Compute the sum of the following decimals:\n{expression}\n\n"
             f"{_ALIGNMENT_RULES}\n\n"
+            f"{_NO_TOOLS}\n"
             "Do not show intermediate work beyond what is necessary. "
             f"Reply with exactly one line of the form `{answer_tag}: <decimal>`."
         )
@@ -61,9 +68,10 @@ def build_messages(
         user = (
             f"Compute the chain sum of the following decimals:\n{expression}\n\n"
             f"{_ALIGNMENT_RULES}\n\n"
+            f"{_NO_TOOLS}\n"
             "Accumulate step by step. After including each addend, write "
             f"`{partial_tag} k: <running_total>`. "
-            f"End with `{answer_tag}: <decimal>`. Do not use tools."
+            f"End with `{answer_tag}: <decimal>`."
         )
     else:
         raise ValueError(f"Unknown prompt condition: {condition}")

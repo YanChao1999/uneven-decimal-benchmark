@@ -43,7 +43,7 @@ class HuggingFaceClient:
             "messages": messages,
             "temperature": temperature,
             "max_tokens": max_tokens,
-            "tools": [],
+            "tool_choice": "none",
         }
         if seed is not None:
             payload["seed"] = seed

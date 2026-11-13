@@ -12,15 +12,41 @@ from experiments.src.generate import load_jsonl, load_yaml
 from experiments.src.prompts import build_messages, condition_expects_partials
 
 
+def _load_dotenv(root: Path) -> None:
+    """Load repo-root ``.env`` into os.environ without overriding existing vars."""
+    import os
+
+    path = root / ".env"
+    if not path.is_file():
+        return
+    for line in path.read_text(encoding="utf-8").splitlines():
+        line = line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        key, _, value = line.partition("=")
+        key = key.strip()
+        value = value.strip().strip("'").strip('"')
+        if key and key not in os.environ:
+            os.environ[key] = value
+
+
 def run_eval(config: dict[str, Any], *, repo_root: Path | None = None) -> Path:
     root = repo_root or Path.cwd()
+    _load_dotenv(root)
+    if "dataset" not in config or "models" not in config:
+        raise KeyError(
+            "Eval config must include 'dataset' and 'models'. "
+            "If you passed a dataset_*.yaml file, generate data first with "
+            "`python -m experiments.scripts.generate_cli --config ...`, "
+            "then use an eval_*.yaml (e.g. experiments/configs/eval_factorial_vary_scale.yaml)."
+        )
     dataset_path = root / config["dataset"]
-    output_dir = root / config["output_dir"]
+    output_dir = root / config.get("output_dir", "experiments/results/eval")
     output_dir.mkdir(parents=True, exist_ok=True)
 
     models_cfg = load_yaml(root / "experiments/configs/models.yaml")["models"]
     examples = load_jsonl(dataset_path)
-    conditions = list(config["conditions"])
+    conditions = list(config.get("conditions", ["direct"]))
     sampling = dict(config.get("sampling", {}))
     temperatures = list(sampling.get("temperatures", [0.0]))
     n_samples = int(sampling.get("n_samples", 1))

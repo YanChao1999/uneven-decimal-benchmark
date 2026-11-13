@@ -19,6 +19,21 @@ Scope: relative difficulty trends + error-type correlations (architecture vs tra
 ```bash
 uv venv .venv && source .venv/bin/activate
 uv pip install -e .
+cp .env.example .env   # then fill OPENAI / DEEPSEEK / CURSOR / HF / Ollama keys
+```
+
+API models (tools disabled in client + prompt):
+
+| Config id | Env |
+|-----------|-----|
+| `deepseek-chat` / `deepseek-reasoner` | `DEEPSEEK_API_KEY`, optional `DEEPSEEK_BASE_URL` |
+| `cursor-default` / `cursor-composer` | `CURSOR_API_KEY`, `CURSOR_BASE_URL` |
+
+```bash
+python -m experiments.scripts.generate_cli \
+  --config experiments/configs/dataset_factorial_easy.yaml
+python -m experiments.scripts.eval_cli \
+  --config experiments/configs/eval_api_easy_vary_scale.yaml --no-dry-run
 ```
 
 ### Factorial smoke + dry-run
@@ -37,13 +52,16 @@ python -m experiments.scripts.eval_cli \
 ### Ollama axes (after `ollama pull` of small models)
 
 ```bash
-# Axis 1: one model, all clusters
+# Preferred for ~1.5–3B local models: easy factorial (3 addends, 50/cluster)
+python -m experiments.scripts.generate_cli \
+  --config experiments/configs/dataset_factorial_easy.yaml
 python -m experiments.scripts.eval_cli \
-  --config experiments/configs/eval_fixed_model_vary_clusters.yaml --no-dry-run
+  --config experiments/configs/eval_factorial_easy_fixed_model.yaml --no-dry-run
+python -m experiments.scripts.eval_cli \
+  --config experiments/configs/eval_factorial_easy_vary_scale.yaml --no-dry-run
 
-# Axis 2: all clusters, several scales
-python -m experiments.scripts.eval_cli \
-  --config experiments/configs/eval_fixed_clusters_vary_scale.yaml --no-dry-run
+# Harder full factorial (5 addends) floors small models; keep for larger LLMs
+# dataset_factorial.yaml + eval_factorial_fixed_model.yaml / eval_factorial_vary_scale.yaml
 ```
 
 See README history / earlier sections for Lean (`elan`) and Ollama install notes.

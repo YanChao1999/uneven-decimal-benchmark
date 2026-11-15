@@ -7,7 +7,12 @@ import argparse
 import json
 from pathlib import Path
 
-from experiments.src.aggregate import aggregate, load_results_jsonl, write_aggregate
+from experiments.src.aggregate import (
+    aggregate,
+    format_trend_tables,
+    load_results_jsonl,
+    write_aggregate,
+)
 from experiments.src.generate import load_jsonl, load_yaml
 from experiments.src.paths import repo_root, resolve_repo_path
 from experiments.src.rasp.analyze import (
@@ -45,11 +50,18 @@ def main(argv: list[str] | None = None) -> None:
 
     out = run_eval(cfg, repo_root=root)
     summary = aggregate(load_results_jsonl(out))
-    agg_path = resolve_repo_path(Path(cfg["output_dir"]) / "aggregate.json", root=root)
+    out_dir = resolve_repo_path(Path(cfg["output_dir"]), root=root)
+    agg_path = out_dir / "aggregate.json"
     write_aggregate(agg_path, summary)
     print(f"Wrote raw results to {out}")
     print(f"Wrote aggregate to {agg_path}")
     print(f"Overall accuracy: {summary['accuracy']:.3f} ({summary['n_correct']}/{summary['n_rows']})")
+    if summary.get("trend_matrices"):
+        trend_txt = format_trend_tables(summary)
+        trend_path = out_dir / "trend_tables.txt"
+        trend_path.write_text(trend_txt, encoding="utf-8")
+        print(f"Wrote trend tables to {trend_path}")
+        print(trend_txt)
 
     if cfg.get("rasp_report") or cfg.get("scale_join"):
         examples = load_jsonl(resolve_repo_path(cfg["dataset"], root=root))

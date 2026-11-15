@@ -45,9 +45,14 @@ class EvalResult:
     cluster_id: str = ""
     alignment_level: int = 0
     carry_level: int = 0
+    frac_level: int = 0
+    n_addends: int = 0
     parsed_partials: list[str] = field(default_factory=list)
     expected_partials: list[str] = field(default_factory=list)
     raw_text: str = ""
+    reasoning_text: str = ""
+    has_hidden_reasoning: bool = False
+    message_keys: list[str] = field(default_factory=list)
     manual_override: ErrorType | None = None
     notes: str = ""
 
@@ -197,6 +202,8 @@ def evaluate_response(
     raw_text: str,
     expect_partials: bool,
     manual_override: ErrorType | None = None,
+    reasoning_text: str = "",
+    message_keys: list[str] | None = None,
 ) -> EvalResult:
     predicted = extract_final_answer(raw_text)
     parsed_partials = extract_partials(raw_text) if expect_partials else []
@@ -213,12 +220,15 @@ def evaluate_response(
         error_type = manual_override
     correct = error_type == "correct"
     cluster_id = str(example.get("cluster_id") or example.get("stratum") or "")
+    keys = list(message_keys or [])
     return EvalResult(
         example_id=example["id"],
         stratum=str(example.get("stratum", cluster_id)),
         cluster_id=cluster_id,
         alignment_level=int(example.get("alignment_level", 0)),
         carry_level=int(example.get("carry_level", 0)),
+        frac_level=int(example.get("frac_level", example.get("meta", {}).get("frac_level", 0) or 0)),
+        n_addends=int(example.get("n_addends", len(example.get("addends", [])))),
         condition=condition,
         model=model,
         temperature=temperature,
@@ -230,5 +240,8 @@ def evaluate_response(
         parsed_partials=parsed_partials,
         expected_partials=expected_partials if expect_partials else [],
         raw_text=raw_text,
+        reasoning_text=reasoning_text or "",
+        has_hidden_reasoning=bool((reasoning_text or "").strip()),
+        message_keys=keys,
         manual_override=manual_override,
     )

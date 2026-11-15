@@ -94,7 +94,7 @@ class OllamaClient:
             "stream": False,
             "options": options,
         }
-        with httpx.Client(timeout=self.timeout) as client:
+        with httpx.Client(timeout=self.timeout, trust_env=False) as client:
             resp = client.post(f"{self.host}/api/chat", json=payload)
             if resp.status_code == 404:
                 # Often means the model tag is missing.
@@ -127,7 +127,7 @@ class OllamaClient:
             "Authorization": f"Bearer {self.api_key}",
             "Content-Type": "application/json",
         }
-        with httpx.Client(timeout=self.timeout) as client:
+        with httpx.Client(timeout=self.timeout, trust_env=False) as client:
             resp = client.post(
                 f"{self.host}/v1/chat/completions",
                 json=payload,

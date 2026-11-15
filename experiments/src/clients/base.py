@@ -18,6 +18,10 @@ class ModelResponse:
     model: str
     provider: str
     raw: dict[str, Any] | None = None
+    # Hidden / side-channel reasoning some providers return alongside content
+    # (e.g. DeepSeek reasoner ``reasoning_content``). Empty if none exposed.
+    reasoning_text: str = ""
+    message_keys: list[str] | None = None
 
 
 class ModelClient(Protocol):

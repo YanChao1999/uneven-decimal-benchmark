@@ -51,7 +51,7 @@ class HuggingFaceClient:
             "Authorization": f"Bearer {self.api_key}",
             "Content-Type": "application/json",
         }
-        with httpx.Client(timeout=self.timeout) as client:
+        with httpx.Client(timeout=self.timeout, trust_env=False) as client:
             resp = client.post(f"{self.base_url}/chat/completions", json=payload, headers=headers)
             resp.raise_for_status()
             data = resp.json()

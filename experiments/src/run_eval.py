@@ -16,6 +16,10 @@ def _load_dotenv(root: Path) -> None:
     """Load repo-root ``.env`` into os.environ without overriding existing vars."""
     import os
 
+    # Drop inherited HTTP(S) proxies that break DeepSeek / local Ollama.
+    for key in ("http_proxy", "https_proxy", "HTTP_PROXY", "HTTPS_PROXY", "ALL_PROXY", "all_proxy"):
+        os.environ.pop(key, None)
+
     path = root / ".env"
     if not path.is_file():
         return
@@ -55,7 +59,15 @@ def run_eval(config: dict[str, Any], *, repo_root: Path | None = None) -> Path:
     dry_run = bool(config.get("dry_run", False))
 
     out_path = output_dir / "raw_results.jsonl"
+    total = (
+        len(config["models"])
+        * len(examples)
+        * len(conditions)
+        * len(temperatures)
+        * n_samples
+    )
     n_written = 0
+    print(f"Eval start: {total} calls → {out_path}", flush=True)
     with out_path.open("w", encoding="utf-8") as fout:
         for model_name in config["models"]:
             if dry_run:
@@ -64,6 +76,7 @@ def run_eval(config: dict[str, Any], *, repo_root: Path | None = None) -> Path:
                 if model_name not in models_cfg:
                     raise KeyError(f"Model {model_name!r} missing from models.yaml")
                 client = build_client(models_cfg[model_name])
+            print(f"Model {model_name} ({client.provider})", flush=True)
 
             for example in examples:
                 for condition in conditions:
@@ -86,9 +99,19 @@ def run_eval(config: dict[str, Any], *, repo_root: Path | None = None) -> Path:
                                 sample_index=sample_index,
                                 raw_text=response.text,
                                 expect_partials=expect_partials,
+                                reasoning_text=getattr(response, "reasoning_text", "") or "",
+                                message_keys=getattr(response, "message_keys", None),
                             )
                             fout.write(json.dumps(result.to_json(), ensure_ascii=True) + "\n")
+                            fout.flush()
                             n_written += 1
+                            if n_written == 1 or n_written % 10 == 0 or n_written == total:
+                                print(
+                                    f"  [{n_written}/{total}] {model_name} "
+                                    f"{example.get('id')} correct={result.correct} "
+                                    f"err={result.error_type}",
+                                    flush=True,
+                                )
 
     meta = {
         "dataset": str(dataset_path),

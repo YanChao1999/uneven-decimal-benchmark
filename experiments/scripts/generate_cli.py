@@ -6,7 +6,7 @@ from __future__ import annotations
 import argparse
 from pathlib import Path
 
-from experiments.src.generate import iter_dataset, load_yaml, write_jsonl
+from experiments.src.generate import _resolve_clusters, iter_dataset, load_yaml, write_jsonl
 from experiments.src.paths import repo_root, resolve_repo_path
 
 
@@ -32,6 +32,8 @@ def main(argv: list[str] | None = None) -> None:
         args.output or Path(cfg.get("output", "experiments/data/dataset_default.jsonl")),
         root=root,
     )
+    clusters = _resolve_clusters(cfg)
+    print(f"Clusters: {len(clusters)} (expand_factorial={bool(cfg.get('expand_factorial'))})")
     n = write_jsonl(out, iter_dataset(cfg))
     print(f"Wrote {n} examples to {out}")
 

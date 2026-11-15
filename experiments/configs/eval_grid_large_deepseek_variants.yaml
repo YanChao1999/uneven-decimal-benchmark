@@ -1,0 +1,25 @@
+# Same large F×C×N grid; compare DeepSeek API variants for trend consistency.
+# deepseek-chat already measured in grid_large_deepseek_ollama — re-include for
+# a single apples-to-apples aggregate (or compare against that run).
+dataset: experiments/data/dataset_factorial_grid_large.jsonl
+output_dir: experiments/results/grid_large_deepseek_variants
+
+models:
+  - deepseek-flash
+  - deepseek-v4-pro
+  - deepseek-chat
+  - deepseek-reasoner
+
+conditions:
+  - direct
+
+sampling:
+  temperatures: [0.0]
+  n_samples: 1
+  seed: 0
+  # flash / v4-pro / reasoner spend completion budget on reasoning_content first
+  max_tokens: 4096
+
+dry_run: false
+rasp_report: experiments/results/grid_large_deepseek_variants/rasp_difficulty.json
+scale_join: experiments/results/grid_large_deepseek_variants/rasp_scale_join.json

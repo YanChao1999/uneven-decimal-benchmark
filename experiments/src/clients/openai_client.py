@@ -59,16 +59,36 @@ class OpenAIClient:
             "Authorization": f"Bearer {self.api_key}",
             "Content-Type": "application/json",
         }
-        with httpx.Client(timeout=self.timeout) as client:
+        # trust_env=False avoids corporate HTTP(S)_PROXY breaking API hosts.
+        with httpx.Client(timeout=self.timeout, trust_env=False) as client:
             resp = client.post(f"{self.base_url}/chat/completions", json=payload, headers=headers)
             resp.raise_for_status()
             data = resp.json()
         message = data["choices"][0]["message"]
         text = message.get("content") or ""
+        # Capture hidden / parallel reasoning channels if the API exposes them.
+        reasoning_parts: list[str] = []
+        for key in (
+            "reasoning_content",
+            "reasoning",
+            "reasoning_text",
+            "thought",
+            "thinking",
+        ):
+            val = message.get(key)
+            if isinstance(val, str) and val.strip():
+                reasoning_parts.append(val.strip())
         # If a provider still returns tool_calls, refuse to treat them as answers.
         if self.disable_tools and message.get("tool_calls"):
             raise RuntimeError(
                 f"Provider {self.provider} returned tool_calls despite tool_choice=none; "
                 "aborting so arithmetic is not delegated to tools."
             )
-        return ModelResponse(text=text, model=self.model, provider=self.provider, raw=data)
+        return ModelResponse(
+            text=text,
+            model=self.model,
+            provider=self.provider,
+            raw=data,
+            reasoning_text="\n\n".join(reasoning_parts),
+            message_keys=sorted(message.keys()),
+        )

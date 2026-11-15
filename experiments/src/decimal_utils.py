@@ -59,12 +59,11 @@ def pad_frac(s: str, width: int) -> str:
     return f"{sign}{whole}.{frac.ljust(width, '0')}"
 
 
-def column_carry_count(addends: Iterable[str]) -> int:
-    """Count column-wise carries after aligning by decimal point (right-pad)."""
+def _aligned_digit_rows(addends: Iterable[str]) -> tuple[list[list[int]], int, int]:
+    """Return (rows aligned from the right, max_len, max_frac)."""
     items = [normalize_decimal_str(a) for a in addends]
     max_frac = max((frac_len(a) for a in items), default=0)
     padded = [pad_frac(a, max_frac) for a in items]
-    # Work with absolute digit columns from the rightmost fractional place.
     digit_rows: list[list[int]] = []
     max_len = 0
     for p in padded:
@@ -73,18 +72,77 @@ def column_carry_count(addends: Iterable[str]) -> int:
         digits = [sign * int(ch) for ch in body]
         digit_rows.append(digits)
         max_len = max(max_len, len(digits))
-    # Left-pad integer parts so columns align from the right.
     aligned = [[0] * (max_len - len(row)) + row for row in digit_rows]
-    carries = 0
+    return aligned, max_len, max_frac
+
+
+def column_carry_count(addends: Iterable[str]) -> int:
+    """Count column-wise carries after aligning by decimal point (right-pad)."""
+    return int(carry_profile(addends)["carry_count"])
+
+
+def carry_profile(addends: Iterable[str]) -> dict[str, int | float | list[int]]:
+    """Structural carry stats for difficulty labeling (not just a noisy count).
+
+    Fractional places are indexed from the decimal point:
+    place 0 = tenths, 1 = hundredths, ... (LSB among fractional columns).
+    """
+    aligned, max_len, max_frac = _aligned_digit_rows(addends)
+    if max_len == 0:
+        return {
+            "carry_count": 0,
+            "n_carry_columns": 0,
+            "max_carry_run": 0,
+            "odd_place_carries": 0,
+            "even_place_carries": 0,
+            "frac_carry_columns": 0,
+            "carry_mask_frac": [],
+        }
+
+    carry_count = 0
+    n_carry_columns = 0
+    max_run = 0
+    run = 0
+    # mask over fractional places only, LSB-first (place 0 = tenths)
+    carry_mask_frac: list[int] = [0] * max_frac
+    odd_place = 0
+    even_place = 0
+    frac_carry_columns = 0
+
     carry = 0
-    for col in range(max_len - 1, -1, -1):
+    # Walk columns right→left; column index from right: 0 = least significant digit.
+    for dist_from_right in range(max_len):
+        col = max_len - 1 - dist_from_right
         total = carry + sum(row[col] for row in aligned)
-        # Carry toward the next more-significant digit.
         next_carry = total // 10
-        if next_carry != 0:
-            carries += abs(next_carry)
+        produced = abs(next_carry) != 0
+        if produced:
+            carry_count += abs(next_carry)
+            n_carry_columns += 1
+            run += 1
+            max_run = max(max_run, run)
+            # Fractional place index if this column is in the frac region.
+            if dist_from_right < max_frac:
+                place = dist_from_right  # 0=tenths
+                carry_mask_frac[place] = 1
+                frac_carry_columns += 1
+                if place % 2 == 1:
+                    odd_place += 1
+                else:
+                    even_place += 1
+        else:
+            run = 0
         carry = next_carry
-    return carries
+
+    return {
+        "carry_count": carry_count,
+        "n_carry_columns": n_carry_columns,
+        "max_carry_run": max_run,
+        "odd_place_carries": odd_place,
+        "even_place_carries": even_place,
+        "frac_carry_columns": frac_carry_columns,
+        "carry_mask_frac": carry_mask_frac,
+    }
 
 
 def chain_sum(addends: Iterable[str]) -> str:

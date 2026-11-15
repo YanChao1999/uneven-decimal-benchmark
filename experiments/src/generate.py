@@ -26,7 +26,9 @@ CarryStructure = Literal[
     "odd_places",  # carry on odd frac places only (1,3,5…)
     "even_places", # carry on even frac places only (0,2,4…)
     "chain",       # consecutive multi-place carry run
+    "density",     # target carry-column density ρ = k / F (length-normalized)
 ]
+DensityLayout = Literal["chain", "spread"]  # how to place the k forced carries
 
 
 @dataclass(frozen=True)
@@ -208,7 +210,9 @@ def _set_column_force_carry(
     for k, si in present_idx:
         parsed[k][2][si] = "0"
     n = len(present_idx)
-    target = rng.randint(10, min(9 * n, 18))
+    # Cap at 15 so outgoing carry is exactly 1 — keeps absorb columns effective
+    # (incoming≤1 ⇒ digit-sum≤8 still stops propagation).
+    target = rng.randint(10, min(9 * n, 15))
     (k0, s0), (k1, s1) = present_idx[0], present_idx[1]
     d0 = min(9, target - 1)
     d1 = min(9, target - d0)
@@ -274,17 +278,45 @@ def _reshape_for_carry_bias(
     return _format_reshaped(parsed, orig_frac)
 
 
+def _force_places_for_density(
+    max_f: int,
+    target_density: float,
+    layout: DensityLayout,
+) -> set[int]:
+    """Choose k≈ρ·F LSB-first places to force-carry (length-normalized C)."""
+    if max_f <= 0:
+        return set()
+    rho = max(0.0, min(1.0, float(target_density)))
+    k = int(round(rho * max_f))
+    k = max(0, min(max_f, k))
+    if k == 0:
+        return set()
+    if layout == "chain":
+        return set(range(0, k))
+    if layout == "spread":
+        if k == 1:
+            return {0}
+        # Evenly spaced across the frac length (LSB-first indices).
+        return {int(round(i * (max_f - 1) / (k - 1))) for i in range(k)}
+    raise ValueError(f"Unknown density_layout: {layout!r}")
+
+
 def _reshape_for_carry_structure(
     rng: random.Random,
     addends: list[str],
     structure: CarryStructure,
     *,
     min_carry_run: int = 3,
+    target_carry_density: float | None = None,
+    density_layout: DensityLayout = "spread",
 ) -> list[str]:
     """Force structural carry patterns on fractional places (lengths preserved).
 
     Modes are designed to be less confounded with N than raw digit-bias:
     each column is explicitly forced to carry or not-carry.
+
+    ``density`` (or any mode with ``target_carry_density``) sets
+    ρ = (# forced carry places) / F, so C is length-normalized against F.
     """
     parsed, orig_frac, max_f = _parse_addends_for_reshape(addends)
     if max_f == 0 or len(addends) < 2:
@@ -293,7 +325,10 @@ def _reshape_for_carry_structure(
     # Force sets use LSB-first place ids (0 = finest / rightmost frac digit),
     # matching carry propagation direction and ``carry_profile`` masks.
     force: set[int] = set()
-    if structure == "none":
+    if target_carry_density is not None or structure == "density":
+        rho = 0.0 if target_carry_density is None else float(target_carry_density)
+        force = _force_places_for_density(max_f, rho, density_layout)
+    elif structure == "none":
         force = set()
     elif structure == "isolated":
         start = rng.randint(0, 1) if max_f > 1 else 0
@@ -313,8 +348,15 @@ def _reshape_for_carry_structure(
     else:
         raise ValueError(f"Unknown carry_structure: {structure!r}")
 
-    # Patterned modes: suppressed columns absorb incoming carry (budget ≤ 8).
-    absorb = structure in {"isolated", "odd_places", "even_places"}
+    # Absorb on non-forced places whenever we care about a clean pattern/density.
+    # (Also for chain/density so run does not bleed into unused F length.)
+    absorb = structure in {
+        "isolated",
+        "odd_places",
+        "even_places",
+        "chain",
+        "density",
+    } or target_carry_density is not None
     for lsb in range(max_f):
         if lsb in force:
             _set_column_force_carry(rng, parsed, lsb, max_f)
@@ -323,7 +365,8 @@ def _reshape_for_carry_structure(
                 rng, parsed, lsb, max_f, absorb_incoming=absorb
             )
 
-    if structure == "none":
+    # Density / none: kill integer-place carries so ρ is frac-only and N-stable.
+    if structure in {"none", "density"} or target_carry_density is not None:
         _zero_integer_carries(rng, parsed)
 
     return _format_reshaped(parsed, orig_frac)
@@ -349,6 +392,8 @@ def generate_example(
     seed: int,
     carry_structure: CarryStructure | None = None,
     min_carry_run: int = 3,
+    target_carry_density: float | None = None,
+    density_layout: DensityLayout = "spread",
 ) -> Example:
     frac_lens = _choose_frac_lengths(
         rng,
@@ -373,7 +418,12 @@ def generate_example(
     ]
     if carry_structure is not None and n_addends >= 2:
         addends = _reshape_for_carry_structure(
-            rng, addends, carry_structure, min_carry_run=min_carry_run
+            rng,
+            addends,
+            carry_structure,
+            min_carry_run=min_carry_run,
+            target_carry_density=target_carry_density,
+            density_layout=density_layout,
         )
     elif carry_bias in {"low", "high"} and n_addends >= 2:
         addends = _reshape_for_carry_bias(rng, addends, carry_bias)
@@ -402,11 +452,16 @@ def generate_example(
             "carry_bias": carry_bias,
             "carry_structure": carry_structure,
             "min_carry_run": min_carry_run if carry_structure == "chain" else None,
+            "target_carry_density": target_carry_density,
+            "density_layout": density_layout if carry_structure == "density" or target_carry_density is not None else None,
             "max_carry_run": profile["max_carry_run"],
             "n_carry_columns": profile["n_carry_columns"],
             "odd_place_carries": profile["odd_place_carries"],
             "even_place_carries": profile["even_place_carries"],
             "carry_mask_frac": profile["carry_mask_frac"],
+            "carry_col_density": profile["carry_col_density"],
+            "carry_run_density": profile["carry_run_density"],
+            "carry_amount_density": profile["carry_amount_density"],
             "alignment_factor": f"A{alignment_level}",
             "carry_factor": f"C{carry_level}",
             "frac_level": frac_level,
@@ -559,6 +614,11 @@ def _merge_cluster_block(
         bias_default = "moderate"
     carry_structure = block.get("carry_structure", c_def.get("carry_structure"))
     min_carry_run = int(block.get("min_carry_run", c_def.get("min_carry_run", 3)))
+    raw_density = block.get("target_carry_density", c_def.get("target_carry_density"))
+    target_carry_density = float(raw_density) if raw_density is not None else None
+    density_layout = str(
+        block.get("density_layout", c_def.get("density_layout", "spread"))
+    )
     merged = {
         **a_def,
         **c_def,
@@ -575,6 +635,8 @@ def _merge_cluster_block(
         ),
         "carry_structure": carry_structure,
         "min_carry_run": min_carry_run,
+        "target_carry_density": target_carry_density,
+        "density_layout": density_layout,
         "cluster_id": cluster_id,
     }
     if n_addends is not None:
@@ -630,6 +692,8 @@ def iter_dataset(config: dict[str, Any]) -> Iterator[Example]:
                 seed=example_seed,
                 carry_structure=structure,  # type: ignore[arg-type]
                 min_carry_run=int(merged.get("min_carry_run", 3)),
+                target_carry_density=merged.get("target_carry_density"),
+                density_layout=str(merged.get("density_layout", "spread")),  # type: ignore[arg-type]
             )
 
 

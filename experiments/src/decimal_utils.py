@@ -134,6 +134,9 @@ def carry_profile(addends: Iterable[str]) -> dict[str, int | float | list[int]]:
             run = 0
         carry = next_carry
 
+    # Densities normalize by fractional length so C is less confounded with F.
+    # Prefer frac_carry_columns / max_frac as the primary "carry density".
+    denom = max(max_frac, 1)
     return {
         "carry_count": carry_count,
         "n_carry_columns": n_carry_columns,
@@ -142,6 +145,13 @@ def carry_profile(addends: Iterable[str]) -> dict[str, int | float | list[int]]:
         "even_place_carries": even_place,
         "frac_carry_columns": frac_carry_columns,
         "carry_mask_frac": carry_mask_frac,
+        "frac_len": max_frac,
+        # ρ_col = fraction of frac places that emit a carry
+        "carry_col_density": frac_carry_columns / denom,
+        # ρ_run = longest consecutive carry run / frac length
+        "carry_run_density": max_run / denom if max_frac else 0.0,
+        # ρ_amt = total carry magnitude / frac length (captures multi-carries)
+        "carry_amount_density": carry_count / denom,
     }
 
 

@@ -1,0 +1,45 @@
+seed: 42
+output: experiments/data/dataset_factorial.jsonl
+
+defaults:
+  n_addends: 5
+  int_digits_min: 1
+  int_digits_max: 3
+  frac_digits_min: 1
+  frac_digits_max: 6
+  allow_negative: false
+
+factors:
+  alignment:
+    A0:
+      level: 0
+      aligned: true
+      frac_digits: 4
+    A1:
+      level: 1
+      aligned: false
+  carry:
+    C0:
+      level: 0
+      carry_bias: low
+    C1:
+      level: 1
+      carry_bias: high
+
+clusters:
+  A0C0:
+    count: 50
+    alignment: A0
+    carry: C0
+  A0C1:
+    count: 50
+    alignment: A0
+    carry: C1
+  A1C0:
+    count: 50
+    alignment: A1
+    carry: C0
+  A1C1:
+    count: 50
+    alignment: A1
+    carry: C1

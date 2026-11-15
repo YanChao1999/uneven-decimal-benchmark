@@ -1,0 +1,22 @@
+# Full factorial dataset — axis 1: fixed model, vary A×C clusters.
+# Prerequisites:
+#   python -m experiments.scripts.generate_cli --config experiments/configs/dataset_factorial.yaml
+#   ollama pull qwen2.5:3b
+dataset: experiments/data/dataset_factorial.jsonl
+output_dir: experiments/results/factorial_fixed_model
+
+models:
+  - ollama-qwen2.5-3b
+
+conditions:
+  - direct
+
+sampling:
+  temperatures: [0.0]
+  n_samples: 1
+  seed: 0
+  max_tokens: 256
+
+dry_run: false
+rasp_report: experiments/results/factorial_fixed_model/rasp_difficulty.json
+scale_join: experiments/results/factorial_fixed_model/rasp_scale_join.json

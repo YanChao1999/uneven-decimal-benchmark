@@ -1,0 +1,19 @@
+# Axis 1: fix one (local) model, vary A×C sample clusters.
+dataset: experiments/data/fixtures/factorial_smoke.jsonl
+output_dir: experiments/results/fixed_model_vary_clusters
+
+models:
+  - ollama-qwen2.5-3b
+
+conditions:
+  - direct
+
+sampling:
+  temperatures: [0.0]
+  n_samples: 1
+  seed: 0
+  max_tokens: 256
+
+dry_run: false
+rasp_report: experiments/results/fixed_model_vary_clusters/rasp_difficulty.json
+scale_join: experiments/results/fixed_model_vary_clusters/rasp_scale_join.json

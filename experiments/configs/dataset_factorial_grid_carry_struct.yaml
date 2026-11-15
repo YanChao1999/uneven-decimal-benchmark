@@ -1,0 +1,40 @@
+# F×C×N grid with *structural* carry levels (less N-confounded than digit-bias C).
+#
+# C typology (LSB-first fractional places: 0 = finest / rightmost digit):
+#   C0 none        — zero carries (frac + int columns controlled)
+#   C1 isolated    — sparse non-adjacent carries (absorb on gaps)
+#   C2 odd_places  — carries on odd LSB places only (1,3,5…)
+#   C3 chain       — consecutive LSB→MSB carry run (min_carry_run≥3)
+#
+# Replaces noisy digit-bias C (low/mod/high), which was confounded with N.
+# Keep F ≥ 4 so C2/C3 patterns are identifiable.
+seed: 202
+output: experiments/data/dataset_factorial_grid_carry_struct.jsonl
+expand_factorial: true
+per_cluster_count: 12
+
+defaults:
+  int_digits_min: 1
+  int_digits_max: 2
+  allow_negative: false
+  aligned: true
+  alignment_level: 0
+
+factors:
+  frac:
+    F0: { level: 0, frac_digits: 4, frac_digits_min: 4, frac_digits_max: 4 }
+    F1: { level: 1, frac_digits: 6, frac_digits_min: 6, frac_digits_max: 6 }
+    F2: { level: 2, frac_digits: 8, frac_digits_min: 8, frac_digits_max: 8 }
+  carry:
+    C0: { level: 0, carry_structure: none, carry_bias: low }
+    C1: { level: 1, carry_structure: isolated, carry_bias: moderate }
+    C2: { level: 2, carry_structure: odd_places, carry_bias: moderate }
+    C3: { level: 3, carry_structure: chain, min_carry_run: 3, carry_bias: high }
+  n_addends:
+    N2: { n_addends: 2 }
+    N3: { n_addends: 3 }
+    N4: { n_addends: 4 }
+    N6: { n_addends: 6 }
+    N8: { n_addends: 8 }
+
+# 3×4×5 = 60 clusters × 12 = 720 examples

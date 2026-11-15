@@ -1,0 +1,21 @@
+dataset: experiments/data/dataset_factorial_easy.jsonl
+output_dir: experiments/results/factorial_easy_vary_scale
+
+models:
+  - ollama-qwen2.5-1.5b
+  - ollama-gemma2-2b
+  - ollama-qwen2.5-3b
+  - ollama-llama3.2-3b
+
+conditions:
+  - direct
+
+sampling:
+  temperatures: [0.0]
+  n_samples: 1
+  seed: 0
+  max_tokens: 256
+
+dry_run: false
+rasp_report: experiments/results/factorial_easy_vary_scale/rasp_difficulty.json
+scale_join: experiments/results/factorial_easy_vary_scale/rasp_scale_join.json

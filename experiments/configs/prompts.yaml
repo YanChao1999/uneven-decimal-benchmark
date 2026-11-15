@@ -1,0 +1,10 @@
+# Prompt condition identifiers used by the eval runner.
+conditions:
+  - direct
+  - scratch_partial
+  - align_hint
+  - scratch_align
+
+# Shared formatting instructions appended by code when needed.
+answer_tag: "FINAL_ANSWER"
+partial_tag: "PARTIAL"

@@ -1,0 +1,41 @@
+# Larger F×C×N trend matrix (aligned A0 only — no uneven confound).
+#
+# Levels chosen from the pilot cliff points:
+#   F denser around 2–8 (DeepSeek first drops near long frac + large N)
+#   C: low / moderate / high (3-way carry gradient)
+#   N denser 2–6 then 8,10 (small models cliff between N3 and N5)
+#
+# expand_factorial builds the full cartesian product automatically.
+seed: 101
+output: experiments/data/dataset_factorial_grid_large.jsonl
+expand_factorial: true
+per_cluster_count: 12
+
+defaults:
+  int_digits_min: 1
+  int_digits_max: 2
+  allow_negative: false
+  aligned: true
+  alignment_level: 0
+
+factors:
+  frac:
+    F0: { level: 0, frac_digits: 2, frac_digits_min: 2, frac_digits_max: 2 }
+    F1: { level: 1, frac_digits: 3, frac_digits_min: 3, frac_digits_max: 3 }
+    F2: { level: 2, frac_digits: 4, frac_digits_min: 4, frac_digits_max: 4 }
+    F3: { level: 3, frac_digits: 6, frac_digits_min: 6, frac_digits_max: 6 }
+    F4: { level: 4, frac_digits: 8, frac_digits_min: 8, frac_digits_max: 8 }
+  carry:
+    C0: { level: 0, carry_bias: low }
+    C1: { level: 1, carry_bias: moderate }
+    C2: { level: 2, carry_bias: high }
+  n_addends:
+    N2: { n_addends: 2 }
+    N3: { n_addends: 3 }
+    N4: { n_addends: 4 }
+    N5: { n_addends: 5 }
+    N6: { n_addends: 6 }
+    N8: { n_addends: 8 }
+    N10: { n_addends: 10 }
+
+# 5×3×7 = 105 clusters × 12 = 1260 examples

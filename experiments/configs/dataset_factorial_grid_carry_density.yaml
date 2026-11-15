@@ -1,0 +1,62 @@
+# F×C×N with C = length-normalized carry density ρ.
+#
+#   ρ = (# frac places that emit a carry) / F
+#
+# Levels (spread layout — same ρ, not confounded with F length):
+#   C0 ρ=0.00  — no carries
+#   C1 ρ=0.25  — sparse
+#   C2 ρ=0.50  — half of places
+#   C3 ρ=1.00  — every frac place carries
+#
+# Optional secondary contrast: set density_layout to `chain` for consecutive
+# LSB runs at the same ρ (pattern ≠ density).
+seed: 303
+output: experiments/data/dataset_factorial_grid_carry_density.jsonl
+expand_factorial: true
+per_cluster_count: 12
+
+defaults:
+  int_digits_min: 1
+  int_digits_max: 2
+  allow_negative: false
+  aligned: true
+  alignment_level: 0
+
+factors:
+  frac:
+    F0: { level: 0, frac_digits: 4, frac_digits_min: 4, frac_digits_max: 4 }
+    F1: { level: 1, frac_digits: 6, frac_digits_min: 6, frac_digits_max: 6 }
+    F2: { level: 2, frac_digits: 8, frac_digits_min: 8, frac_digits_max: 8 }
+  carry:
+    C0:
+      level: 0
+      carry_structure: density
+      target_carry_density: 0.0
+      density_layout: spread
+      carry_bias: low
+    C1:
+      level: 1
+      carry_structure: density
+      target_carry_density: 0.25
+      density_layout: spread
+      carry_bias: moderate
+    C2:
+      level: 2
+      carry_structure: density
+      target_carry_density: 0.50
+      density_layout: spread
+      carry_bias: moderate
+    C3:
+      level: 3
+      carry_structure: density
+      target_carry_density: 1.0
+      density_layout: spread
+      carry_bias: high
+  n_addends:
+    N2: { n_addends: 2 }
+    N3: { n_addends: 3 }
+    N4: { n_addends: 4 }
+    N6: { n_addends: 6 }
+    N8: { n_addends: 8 }
+
+# 3×4×5 = 60 clusters × 12 = 720 examples

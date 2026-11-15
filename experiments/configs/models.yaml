@@ -1,0 +1,103 @@
+# Model adapters. API keys come from environment variables (see .env.example).
+# tools / function calling are always disabled by the clients + prompt text.
+
+models:
+  gpt-4o:
+    provider: openai
+    model: gpt-4o
+    max_tokens: 1024
+
+  gpt-4.1-mini:
+    provider: openai
+    model: gpt-4.1-mini
+    max_tokens: 1024
+
+  # DeepSeek (OpenAI-compatible). Set DEEPSEEK_API_KEY.
+  # API catalog currently lists deepseek-flash / deepseek-v4-pro;
+  # chat / reasoner / coder remain usable aliases on this account.
+  deepseek-flash:
+    provider: deepseek
+    model: deepseek-flash
+    # Hidden reasoning_content consumes completion budget before visible answer.
+    max_tokens: 2048
+
+  deepseek-v4-pro:
+    provider: deepseek
+    model: deepseek-v4-pro
+    max_tokens: 4096
+
+  deepseek-chat:
+    provider: deepseek
+    model: deepseek-chat
+    max_tokens: 1024
+
+  deepseek-reasoner:
+    provider: deepseek
+    model: deepseek-reasoner
+    max_tokens: 2048
+
+  deepseek-coder:
+    provider: deepseek
+    model: deepseek-coder
+    max_tokens: 1024
+
+  # Cursor OpenAI-compatible gateway. Set CURSOR_API_KEY and CURSOR_BASE_URL.
+  # Adjust `model` to whatever id your Cursor endpoint expects.
+  cursor-default:
+    provider: cursor
+    model: cursor-default
+    max_tokens: 1024
+
+  cursor-composer:
+    provider: cursor
+    model: composer-1
+    max_tokens: 1024
+
+  qwen2.5-7b-instruct:
+    provider: hf
+    model: Qwen/Qwen2.5-7B-Instruct
+    max_tokens: 1024
+
+  # Local Ollama (CPU; ~14GB RAM — prefer one large model loaded at a time).
+  # Pulled locally: qwen2.5:1.5b / 3b / 7b, llama3.2:3b, gemma2:2b.
+  ollama-qwen2.5-1.5b:
+    provider: ollama
+    model: qwen2.5:1.5b
+    approx_params_b: 1.5
+    max_tokens: 1024
+
+  ollama-qwen2.5-3b:
+    provider: ollama
+    model: qwen2.5:3b
+    approx_params_b: 3.0
+    max_tokens: 1024
+
+  ollama-qwen2.5-7b:
+    provider: ollama
+    model: qwen2.5:7b
+    approx_params_b: 7.0
+    max_tokens: 1024
+
+  ollama-llama3.2-3b:
+    provider: ollama
+    model: llama3.2:3b
+    approx_params_b: 3.0
+    max_tokens: 1024
+
+  ollama-gemma2-2b:
+    provider: ollama
+    model: gemma2:2b
+    approx_params_b: 2.0
+    max_tokens: 1024
+
+  # Not pulled locally yet — `ollama pull phi3:mini` if needed.
+  ollama-phi3-mini:
+    provider: ollama
+    model: phi3:mini
+    approx_params_b: 3.8
+    max_tokens: 1024
+
+  local-stub:
+    provider: local_stub
+    model: local-stub
+    max_tokens: 256

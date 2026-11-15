@@ -1,0 +1,27 @@
+seed: 7
+output: experiments/data/fixtures/smoke.jsonl
+
+defaults:
+  n_addends: 3
+  int_digits_min: 1
+  int_digits_max: 2
+  frac_digits_min: 1
+  frac_digits_max: 4
+  allow_negative: false
+
+strata:
+  aligned:
+    count: 2
+    aligned: true
+    frac_digits: 3
+    carry_bias: moderate
+
+  uneven_low_carry:
+    count: 2
+    aligned: false
+    carry_bias: low
+
+  uneven_high_carry:
+    count: 2
+    aligned: false
+    carry_bias: high

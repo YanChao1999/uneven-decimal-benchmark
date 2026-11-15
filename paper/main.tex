@@ -1,0 +1,135 @@
+\documentclass[11pt]{article}
+
+\usepackage[margin=1in]{geometry}
+\usepackage{booktabs}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{amsmath}
+
+\title{Two-Factor RASP Budgets for Uneven Decimal Chain Sums\\
+\large Alignment $\times$ Carry Clusters, Depth/Head Lower Bounds, and Dual Eval Axes}
+\author{YAN Chao}
+\date{}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+I factor decimal chain-sum difficulty into two \emph{independent} axes:
+\textbf{decimal-point alignment} (fractional unevenness) and \textbf{carry-chain degree}.
+Their Cartesian product yields sample clusters $\{A_i\times C_j\}$.
+For each cluster I write a specialized RASP program and derive
+\emph{minimum depth} and \emph{minimum head} budgets---Transformer-native resource
+lower bounds for a faithful align$\to$digitwise-add$\to$carry algorithm.
+I then evaluate open models along two complementary trends:
+(1)~\textbf{fixed model, vary clusters}; (2)~\textbf{fixed clusters, vary scale}.
+I only claim relative difficulty trends and error-type correlations with these budgets,
+helping separate architectural constraints from training-distribution effects.
+\end{abstract}
+
+\section{Introduction}
+
+Failures on place-value arithmetic are often blamed on missing similar pretraining
+examples. RASP~\cite{weiss2021rasp} offers a second account: even ideal data must be
+executed under Transformer-native limits on depth (sequential carry) and attention
+patterns (alignment selects).
+
+\paragraph{Design.}
+I split difficulty into orthogonal factors $A$ (alignment) and $C$ (carry degree),
+build independent clusters $A_iC_j$, and for each cluster instantiate a RASP sketch
+to read off $\mathrm{depth}_{\min}$ and $\mathrm{heads}_{\min}$.
+I then test whether real models track those predictions on two axes---within a model
+across clusters, and across scales on fixed clusters.
+
+\paragraph{Scope.}
+I only claim relative orders and error-type correlations---not absolute accuracy
+forecasts, and not that models have ``learned'' alignment/carry as concepts.
+
+\section{Method}
+
+\subsection{Factors and clusters}
+\begin{itemize}
+  \item $A_0$: equal fractional lengths (alignment trivial).
+  \item $A_1$: uneven fractional lengths (dynamic place binding).
+  \item $C_0$: carry-sparse digit bias (short carry runs).
+  \item $C_1$: carry-dense digit bias (long carry runs).
+\end{itemize}
+Clusters: $A_0C_0$, $A_0C_1$, $A_1C_0$, $A_1C_1$ (and extensible grids).
+
+\subsection{Per-cluster RASP $\Rightarrow$ depth/head budgets}
+Shared stages: align (if $A_1$), digitwise \texttt{zipmap}, carry scan.
+Cluster-specific programs omit or deepen stages; I report
+\begin{align*}
+\mathrm{depth}_{\min}
+&\gtrsim \mathrm{depth}_{\mathrm{align}}(A)
+  + 1_{\mathrm{digitwise}}
+  + \mathrm{depth}_{\mathrm{carry}}(C,\widehat{\mathrm{run}}), \\
+\mathrm{heads}_{\min}
+&\gtrsim \#\{\text{distinct select patterns: dot, length, zipmap, pred-carry}\}.
+\end{align*}
+Predicted easy$\to$hard order typically $A_0C_0 \prec A_1C_0 \prec A_0C_1 \prec A_1C_1$
+(exact order follows measured budgets on the generated set).
+
+\subsection{Evaluation axes}
+\begin{enumerate}
+  \item \textbf{Fixed model, vary clusters:} does accuracy fall / error mass shift as
+        $\mathrm{depth}_{\min},\mathrm{heads}_{\min}$ rise?
+  \item \textbf{Fixed clusters, vary scale:} do larger models preserve the same relative
+        cluster order while lifting absolute accuracy?
+\end{enumerate}
+Local Ollama pilots ($\approx$1.5--3B) precede larger open/API sweeps on the same JSONL.
+Labels: Python exact decimals + Lean $n/10^k$ checks.
+
+\subsection{Metrics}
+Exact match; error taxonomy; axis summaries in \texttt{aggregate.json}
+(\texttt{fixed\_model\_vary\_clusters}, \texttt{fixed\_cluster\_vary\_models});
+join with RASP budgets in \texttt{rasp\_scale\_join.json}.
+
+\section{Results}
+
+\begin{table}[t]
+\centering
+\caption{Placeholder: cluster accuracies for one fixed model.}
+\label{tab:fixed-model}
+\begin{tabular}{lcccc}
+\toprule
+Model & $A_0C_0$ & $A_1C_0$ & $A_0C_1$ & $A_1C_1$ \\
+\midrule
+Ollama $\approx$3B & -- & -- & -- & -- \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[t]
+\centering
+\caption{Placeholder: scale sweep on fixed clusters (relative order).}
+\label{tab:fixed-clusters}
+\begin{tabular}{lcccc}
+\toprule
+Scale & $A_0C_0$ & $A_1C_0$ & $A_0C_1$ & $A_1C_1$ \\
+\midrule
+1.5B / 2B / 3B & -- & -- & -- & -- \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{Discussion}
+Agreement with budget-ranked cluster order on both axes supports architecture-linked
+difficulty. Absolute gains with scale without order changes suggest capacity lifts the
+curve while the Transformer bottleneck shape remains. Order breaks localized to $A$ or
+$C$ isolate alignment vs.\ carry-stage failures---useful beyond ``not enough similar data.''
+
+\section{Limitations}
+Budgets are faithful-RASP lower bounds, not Tracr-certified circuits. Early pilots use
+small local models and smoke-sized clusters.
+
+\section{Conclusion}
+By factoring alignment and carry into independent clusters, deriving per-cluster RASP
+depth/head budgets, and testing fixed-model vs.\ fixed-cluster trends, I obtain a
+diagnostic for whether Transformer constraints predict relative difficulty on uneven
+decimal chain sums.
+
+\bibliographystyle{plain}
+\bibliography{refs}
+
+\end{document}

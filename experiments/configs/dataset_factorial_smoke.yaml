@@ -1,0 +1,47 @@
+# Orthogonal factors: alignment (A) × carry-chain degree (C) → 4 sample clusters.
+seed: 11
+output: experiments/data/fixtures/factorial_smoke.jsonl
+
+defaults:
+  n_addends: 3
+  int_digits_min: 1
+  int_digits_max: 2
+  frac_digits_min: 1
+  frac_digits_max: 4
+  allow_negative: false
+
+factors:
+  alignment:
+    A0:
+      level: 0
+      aligned: true
+      frac_digits: 3
+    A1:
+      level: 1
+      aligned: false
+      # uses defaults frac_digits_min/max
+  carry:
+    C0:
+      level: 0
+      carry_bias: low
+    C1:
+      level: 1
+      carry_bias: high
+
+clusters:
+  A0C0:
+    count: 2
+    alignment: A0
+    carry: C0
+  A0C1:
+    count: 2
+    alignment: A0
+    carry: C1
+  A1C0:
+    count: 2
+    alignment: A1
+    carry: C0
+  A1C1:
+    count: 2
+    alignment: A1
+    carry: C1

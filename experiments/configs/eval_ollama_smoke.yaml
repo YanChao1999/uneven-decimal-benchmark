@@ -1,0 +1,25 @@
+# Local Ollama pilot on the smoke fixture (real local model, no cloud API).
+# Prerequisites:
+#   ollama serve
+#   ollama pull qwen2.5:3b
+dataset: experiments/data/fixtures/smoke.jsonl
+output_dir: experiments/results/ollama_smoke
+
+models:
+  - ollama-qwen2.5-3b
+
+conditions:
+  - direct
+  - scratch_partial
+  - align_hint
+  - scratch_align
+
+sampling:
+  temperatures: [0.0]
+  n_samples: 1
+  seed: 0
+  max_tokens: 512
+
+dry_run: false
+rasp_report: experiments/results/ollama_smoke/rasp_difficulty.json
+scale_join: experiments/results/ollama_smoke/rasp_scale_join.json

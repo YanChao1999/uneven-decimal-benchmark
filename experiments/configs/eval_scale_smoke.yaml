@@ -1,0 +1,26 @@
+# Dry-run multi-scale smoke: same dataset, several stub "scales".
+dataset: experiments/data/fixtures/smoke.jsonl
+output_dir: experiments/results/scale_smoke
+models_config: experiments/configs/models_scale.yaml
+
+models:
+  - qwen2.5-0.5b-instruct
+  - qwen2.5-1.5b-instruct
+  - qwen2.5-7b-instruct
+  - gpt-4o-mini
+
+conditions:
+  - direct
+  - scratch_partial
+  - align_hint
+  - scratch_align
+
+sampling:
+  temperatures: [0.0]
+  n_samples: 1
+  seed: 0
+  max_tokens: 256
+
+dry_run: true
+rasp_report: experiments/results/scale_smoke/rasp_difficulty.json
+scale_join: experiments/results/scale_smoke/rasp_scale_join.json

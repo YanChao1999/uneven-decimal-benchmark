@@ -1,0 +1,21 @@
+# DeepSeek API + local Ollama on the easy factorial set (200 examples).
+# Requires: DEEPSEEK_API_KEY in .env; `ollama serve` + pulled model.
+dataset: experiments/data/dataset_factorial_easy.jsonl
+output_dir: experiments/results/deepseek_ollama_easy
+
+models:
+  - deepseek-chat
+  - ollama-qwen2.5-3b
+
+conditions:
+  - direct
+
+sampling:
+  temperatures: [0.0]
+  n_samples: 1
+  seed: 0
+  max_tokens: 512
+
+dry_run: false
+rasp_report: experiments/results/deepseek_ollama_easy/rasp_difficulty.json
+scale_join: experiments/results/deepseek_ollama_easy/rasp_scale_join.json

@@ -1,0 +1,40 @@
+# Multi-scale model roster for the RASP-predicts-scaling hypothesis.
+# Parameter counts are approximate and for reporting only.
+# Real API calls require keys in the environment; dry-run uses local-stub.
+
+models:
+  qwen2.5-0.5b-instruct:
+    provider: hf
+    model: Qwen/Qwen2.5-0.5B-Instruct
+    approx_params_b: 0.5
+    max_tokens: 1024
+
+  qwen2.5-1.5b-instruct:
+    provider: hf
+    model: Qwen/Qwen2.5-1.5B-Instruct
+    approx_params_b: 1.5
+    max_tokens: 1024
+
+  qwen2.5-7b-instruct:
+    provider: hf
+    model: Qwen/Qwen2.5-7B-Instruct
+    approx_params_b: 7.0
+    max_tokens: 1024
+
+  qwen2.5-72b-instruct:
+    provider: hf
+    model: Qwen/Qwen2.5-72B-Instruct
+    approx_params_b: 72.0
+    max_tokens: 1024
+
+  gpt-4o-mini:
+    provider: openai
+    model: gpt-4o-mini
+    approx_params_b: null
+    max_tokens: 1024
+
+  gpt-4o:
+    provider: openai
+    model: gpt-4o
+    approx_params_b: null
+    max_tokens: 1024

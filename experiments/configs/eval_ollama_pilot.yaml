@@ -1,0 +1,41 @@
+# First local pilot: several small Ollama models on the smoke fixture.
+# Focus: relative difficulty order + error-type mass (not absolute SOTA accuracy).
+#
+# Setup:
+#   curl -fsSL https://ollama.com/install.sh | sh
+#   ollama serve   # if not already running as a service
+#   ollama pull qwen2.5:1.5b
+#   ollama pull qwen2.5:3b
+#   ollama pull llama3.2:3b
+#   ollama pull gemma2:2b
+#
+# Run from repo root (venv active):
+#   python -m experiments.scripts.eval_cli \
+#     --config experiments/configs/eval_ollama_pilot.yaml \
+#     --no-dry-run
+
+dataset: experiments/data/fixtures/smoke.jsonl
+output_dir: experiments/results/ollama_pilot
+
+models:
+  - ollama-qwen2.5-1.5b
+  - ollama-qwen2.5-3b
+  - ollama-llama3.2-3b
+  - ollama-gemma2-2b
+
+# Round 1: direct only (fast). Uncomment others for round 2+.
+conditions:
+  - direct
+  # - scratch_partial
+  # - align_hint
+  # - scratch_align
+
+sampling:
+  temperatures: [0.0]
+  n_samples: 1
+  seed: 0
+  max_tokens: 256
+
+dry_run: false
+rasp_report: experiments/results/ollama_pilot/rasp_difficulty.json
+scale_join: experiments/results/ollama_pilot/rasp_scale_join.json

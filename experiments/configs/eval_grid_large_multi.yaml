@@ -1,0 +1,30 @@
+# Large F×C×N trend grid — multi-model scale + DeepSeek variants.
+# Requires: dataset_factorial_grid_large.jsonl, ollama qwen2.5:7b pulled.
+# Prefer running after the 2-model pilot finishes (14GB RAM: one Ollama load at a time).
+dataset: experiments/data/dataset_factorial_grid_large.jsonl
+output_dir: experiments/results/grid_large_multi
+
+models:
+  # DeepSeek API catalog + working aliases
+  - deepseek-flash
+  - deepseek-v4-pro
+  - deepseek-chat
+  - deepseek-reasoner
+  # Local Ollama Qwen scale ladder
+  - ollama-qwen2.5-1.5b
+  - ollama-qwen2.5-3b
+  - ollama-qwen2.5-7b
+
+conditions:
+  - direct
+
+sampling:
+  temperatures: [0.0]
+  n_samples: 1
+  seed: 0
+  # Reasoner / flash / v4-pro spend budget on hidden reasoning_content first.
+  max_tokens: 2048
+
+dry_run: false
+rasp_report: experiments/results/grid_large_multi/rasp_difficulty.json
+scale_join: experiments/results/grid_large_multi/rasp_scale_join.json

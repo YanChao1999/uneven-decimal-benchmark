@@ -1,2 +1,48 @@
-# cache and other artifacts produced by Lean's Lake build tool
+# Lean / Lake
 .lake/
+*.olean
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+dist/
+build/
+.venv/
+venv/
+uv.lock
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Secrets and local env
+.env
+.env.*
+!.env.example
+
+# Generated experiment artifacts (keep fixtures and .gitkeep)
+experiments/data/*
+!experiments/data/.gitkeep
+!experiments/data/fixtures/
+experiments/results/*
+!experiments/results/.gitkeep
+!experiments/results/schema_example.json
+
+# LaTeX build
+paper/*.aux
+paper/*.bbl
+paper/*.blg
+paper/*.fdb_latexmk
+paper/*.fls
+paper/*.log
+paper/*.out
+paper/*.synctex.gz
+paper/*.toc
+paper/main.pdf
+
+# OS / editor
+.DS_Store
+.idea/
+.vscode/
+*.swp
